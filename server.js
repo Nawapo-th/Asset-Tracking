@@ -66,7 +66,7 @@ function generateQRCodeUrl(id) {
     // Using a public API for QR codes similar to original script, or could use 'qrcode' lib locally
     // Original: https://quickchart.io/qr?text=...
     // We'll keep the logic but point to our local server URL if needed, or just the ID
-    const baseUrl = 'http://localhost:3000'; // Adjust as needed
+    const baseUrl = 'http://10.67.3.116:3000'; // เปลี่ยนเป็น IP Server ของคุณ
     return `https://quickchart.io/qr?text=${encodeURIComponent(baseUrl + '?id=' + encodeURIComponent(id))}&margin=0&size=500&ecLevel=L`;
 }
 
@@ -755,4 +755,5 @@ app.post('/api/import', upload.single('file'), async (req, res) => {
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
+    console.log(`To access from other devices, use IP: http://10.67.3.116:${port} (Check your actual IP)`);
 });
