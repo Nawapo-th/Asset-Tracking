@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html class="light">
+
+<head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- PWA Settings -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AssetTrack">
+    <meta name="theme-color" content="#4f46e5">
+
+    <!-- Icons -->
+    <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/192/barcode-scanner-2.png">
+    <link rel="apple-touch-icon-precomposed" href="https://img.icons8.com/fluency/192/barcode-scanner-2.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="https://img.icons8.com/fluency/240/barcode-scanner-2.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://img.icons8.com/fluency/96/barcode-scanner-2.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://img.icons8.com/fluency/48/barcode-scanner-2.png">
+
+    <title>ระบบข้อมูลครุภัณฑ์คอมพิวเตอร์</title>
+
+    <!-- Manifest -->
+    <script>
+        (function () {
+            const iconUrl = "https://img.icons8.com/fluency/240/barcode-scanner-2.png";
+            const manifest = {
+                "name": "Asset Tracking System",
+                "short_name": "AssetTrack",
+                "description": "ระบบบริหารจัดการครุภัณฑ์ (QSHC Asset)",
+                "start_url": ".",
+                "display": "standalone",
+                "orientation": "any",
+                "background_color": "#ffffff",
+                "theme_color": "#4f46e5",
+                "scope": ".",
+                "icons": [
+                    { "src": iconUrl, "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+                    { "src": iconUrl, "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+                ]
+            };
+            const link = document.createElement('link');
+            link.rel = 'manifest';
+            link.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/json' }));
+            document.head.appendChild(link);
+        })();
+    </script>
+
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class', // เปิดใช้งาน Dark Mode แบบ Class Strategy
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body
+    class="bg-slate-50 h-screen flex flex-col overflow-hidden text-slate-800 dark:bg-slate-900 dark:text-slate-200 transition-colors duration-300">
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen"
+        class="fixed inset-0 bg-slate-900/80 z-[70] flex items-center justify-center p-4 hidden backdrop-blur-sm transition-opacity">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-8 transform transition-all scale-100 relative border border-white/20 dark:border-slate-700">
+            <button id="closeLoginBtn"
+                class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">✕</button>
+            <div class="text-center mb-8">
+                <h1 class="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">
+                    ระบบข้อมูลครุภัณฑ์คอมพิวเตอร์</h1>
+                <p class="text-slate-500 dark:text-slate-400 mt-1 text-sm">กรุณาเข้าสู่ระบบด้วยบัญชี QSHC</p>
+            </div>
+            <form id="login-form" class="space-y-5">
+                <input type="text" id="login-username"
+                    class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500"
+                    placeholder="ชื่อผู้ใช้งาน (Username)" required>
+                <div class="relative">
+                    <input type="password" id="login-password"
+                        class="w-full px-4 py-3 pr-12 bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500"
+                        placeholder="รหัสผ่าน (Password)" required>
+                    <button type="button" id="togglePasswordBtn"
+                        class="absolute inset-y-0 right-0 px-4 flex items-center text-slate-400 hover:text-indigo-600 cursor-pointer focus:outline-none"
+                        title="แสดง/ซ่อนรหัสผ่าน">
+                        <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="login-error"
+                    class="p-3 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm hidden text-center">
+                </div>
+                <button type="submit" id="login-btn"
+                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all">เข้าสู่ระบบ</button>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="main-app" class="container mx-auto p-2 md:p-4 flex flex-col h-full max-w-full">
+
+        <!-- HEADER (MOBILE OPTIMIZED) -->
+        <div class="flex-none mb-2 md:mb-3">
+            <header
+                class="relative flex flex-col xl:flex-row justify-between items-center gap-3 bg-white dark:bg-slate-800 p-2 md:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 transition-colors">
+
+                <div class="flex items-center gap-3 w-full xl:w-auto">
+                    <div class="bg-indigo-600 text-white p-1.5 rounded-lg xl:hidden shadow-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="pr-10 xl:pr-0">
+                        <!-- HEADER TITLE: Click to go HOME -->
+                        <h1 class="text-lg md:text-xl font-bold text-slate-800 dark:text-white leading-tight cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                            onclick="switchView('home')" title="กลับหน้าหลัก">
+                            ระบบข้อมูลครุภัณฑ์คอมพิวเตอร์</h1>
+                        <div
+                            class="flex items-center text-[10px] md:text-xs text-slate-500 dark:text-slate-400 font-medium">
+                            <span id="status-dot" class="w-1.5 h-1.5 bg-gray-400 rounded-full mr-1.5"></span>
+                            <span id="status-text">โหมดผู้เยี่ยมชม</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="flex items-center gap-2 w-full xl:w-auto overflow-x-auto mobile-table-scroll pb-1 xl:pb-0 justify-between xl:justify-end">
+
+                    <div
+                        class="flex items-center gap-1 bg-slate-50 dark:bg-slate-700/50 p-1 rounded-xl border border-slate-100 dark:border-slate-600 flex-shrink-0 transition-colors">
+                        <!-- 1. List Button -->
+                        <button id="btnViewList"
+                            class="px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 text-slate-500 hover:bg-white dark:hover:bg-slate-600 hover:text-indigo-600 shadow-sm whitespace-nowrap">
+                            <span class="xl:hidden">รายการ</span><span class="hidden xl:inline">รายการครุภัณฑ์</span>
+                        </button>
+
+                        <!-- 2. Audit Button -->
+                        <button id="auditReportBtn"
+                            class="px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 text-slate-500 dark:text-slate-300 hidden hover:bg-white dark:hover:bg-slate-600 hover:text-emerald-600 dark:hover:text-emerald-400 whitespace-nowrap">
+                            <span class="xl:hidden">ตรวจนับ</span><span class="hidden xl:inline">รายงานการนับ</span>
+                        </button>
+
+                        <!-- 3. Dashboard Button -->
+                        <button id="btnViewDashboard"
+                            class="px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 text-slate-500 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-600 hover:text-purple-600 dark:hover:text-purple-400 whitespace-nowrap">
+                            <span class="xl:hidden">Dash</span><span class="hidden xl:inline">แดชบอร์ด</span>
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        <!-- Theme Toggle Button -->
+                        <button id="themeToggleBtn"
+                            class="p-2 text-slate-500 dark:text-yellow-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                            title="สลับโหมดกลางคืน">
+                            <svg id="icon-sun" class="w-5 h-5 hidden" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z">
+                                </path>
+                            </svg>
+                            <svg id="icon-moon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
+                                </path>
+                            </svg>
+                        </button>
+
+                        <div
+                            class="absolute top-2 right-2 xl:static xl:flex xl:items-center xl:px-3 xl:py-1.5 xl:bg-slate-50 dark:bg-slate-700/50 xl:rounded-lg xl:border xl:border-slate-100 dark:border-slate-600 transition-colors">
+                            <div class="w-8 h-8 xl:w-6 xl:h-6 rounded-full bg-slate-100 dark:bg-slate-600 xl:bg-slate-300 flex items-center justify-center text-slate-600 dark:text-slate-200 xl:text-white font-bold text-xs border border-slate-200 dark:border-slate-500 xl:border-none shadow-sm xl:mr-2"
+                                id="user-avatar">?</div>
+                            <span id="user-display-name"
+                                class="hidden xl:block text-xs font-bold text-slate-700 dark:text-slate-200 max-w-[120px] truncate">Guest</span>
+                        </div>
+
+                        <div id="admin-controls"
+                            class="hidden flex gap-1 border-r border-slate-200 dark:border-slate-600 pr-1 mr-1">
+
+                            <button id="downloadTemplateBtn"
+                                class="p-2 text-slate-400 dark:text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                                title="โหลดแบบฟอร์ม Excel">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                                </svg>
+                            </button>
+
+                            <button id="importButton"
+                                class="p-2 text-slate-400 dark:text-slate-400 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-lg transition-colors"
+                                title="นำเข้า">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                </svg>
+                            </button>
+
+                            <button id="exportButton"
+                                class="p-2 text-slate-400 dark:text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+                                title="ส่งออก">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                                </svg>
+                            </button>
+
+                            <button id="backupButton"
+                                class="p-2 text-slate-400 dark:text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                                title="สำรองข้อมูล">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+                                </svg>
+                            </button>
+
+                            <button id="deleteAllButton"
+                                class="p-2 text-slate-400 dark:text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                title="ลบข้อมูลทั้งหมด">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                </svg>
+                            </button>
+
+                            <button id="clearCacheButton"
+                                class="p-2 text-slate-400 dark:text-slate-400 hover:text-pink-600 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-lg transition-colors"
+                                title="ล้างประวัติเก่า/ขยะ">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                                </svg>
+                            </button>
+
+                            <button id="printQRButton"
+                                class="p-2 text-slate-400 dark:text-slate-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/30 rounded-lg transition-colors"
+                                title="พิมพ์ QR">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75zM16.5 19.5h.75v.75h-.75v-.75z" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <button id="loginButton"
+                            class="ml-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg whitespace-nowrap">Login</button>
+
+                        <input type="file" id="excelInput" accept=".xlsx, .xls" class="hidden" />
+                        <button id="btnDeleteSelected"
+                            class="hidden p-2 xl:px-3 xl:py-2 bg-red-100 dark:bg-red-900/50 xl:bg-red-600 text-red-600 dark:text-red-300 xl:text-white text-xs font-bold rounded-lg hover:bg-red-200 dark:hover:bg-red-900 xl:hover:bg-red-700 shadow-md flex items-center transition-all ml-1">ลบ</button>
+
+                        <button id="addNewButton"
+                            class="hidden px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg ml-1 shadow-md whitespace-nowrap">
+                            + เพิ่มครุภัณฑ์ใหม่
+                        </button>
+
+                        <button id="logoutButton"
+                            class="hidden ml-1 p-2 xl:px-4 xl:py-2 bg-red-100 dark:bg-red-900/50 xl:bg-red-600 text-red-600 dark:text-red-300 xl:text-white text-xs font-bold rounded-lg hover:bg-red-200 dark:hover:bg-red-900 xl:hover:bg-red-700 shadow-sm transition-all flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                                </path>
+                            </svg>
+                            <span class="hidden xl:inline">ออกจากระบบ</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+        </div>
+
+        <!-- VIEW 0: HOME LANDING (หน้าแรก ค้นหาแบบโล่งๆ) -->
+        <div id="home-view" class="flex-1 flex flex-col items-center justify-center p-4 fade-in hidden min-h-[60vh]">
+            <div class="text-center w-full max-w-lg transform transition-all hover:scale-105 duration-500">
+                <!-- Logo / Icon ใหญ่ -->
+                <div
+                    class="mb-6 inline-flex p-6 bg-indigo-50 dark:bg-indigo-900/20 rounded-full shadow-lg ring-4 ring-white dark:ring-slate-800">
+                    <img src="https://img.icons8.com/fluency/240/barcode-scanner-2.png"
+                        class="w-20 h-20 md:w-24 md:h-24 opacity-90">
+                </div>
+
+                <h2 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white mb-2 tracking-tight">
+                    ระบบข้อมูลครุภัณฑ์คอมพิวเตอร์
+                </h2>
+                <p class="text-slate-500 dark:text-slate-400 mb-8 text-sm md:text-base font-medium">
+                    บริหารจัดการและตรวจสอบสถานะครุภัณฑ์ออนไลน์
+                </p>
+                <div class="relative group w-full">
+                    <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                        <svg class="w-6 h-6 text-slate-400 group-focus-within:text-indigo-500 transition-colors"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    <input type="text" id="bigSearchBox" placeholder="พิมพ์รหัสครุภัณฑ์/ชื่อครุภัณฑ์ หรือเปิดกล้องสแกน"
+                        class="w-full pl-14 pr-16 py-4 md:py-5 text-lg rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600">
+
+                    <button onclick="startScanner()"
+                        class="absolute inset-y-0 right-2 flex items-center p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                        title="สแกน QR Code">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 1: DASHBOARD -->
+        <div id="dashboard-view" class="flex-1 flex flex-col gap-3 overflow-hidden hidden fade-in p-1">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 flex-none">
+                <div
+                    class="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border-l-4 border-indigo-500 dark:border-indigo-400">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">ทั้งหมด</p><span
+                        class="text-2xl font-black text-indigo-600 dark:text-indigo-400 leading-none"
+                        id="stat-total">0</span>
+                </div>
+                <div
+                    class="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border-l-4 border-green-500 dark:border-green-400">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">ใช้งาน</p><span
+                        class="text-2xl font-black text-green-600 dark:text-green-400 leading-none"
+                        id="stat-active">0</span>
+                </div>
+                <div id="card-returned" onclick="downloadArchive('returned')"
+                    class="cursor-pointer bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border-l-4 border-blue-500 dark:border-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors group relative">
+                    <div
+                        class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-blue-500">
+                        ⬇️</div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">ส่งคืน (คลิกเพื่อโหลด)</p>
+                    <span class="text-2xl font-black text-blue-500 dark:text-blue-400 leading-none"
+                        id="stat-returned">0</span>
+                </div>
+
+                <div id="card-retired" onclick="downloadArchive('retired')"
+                    class="cursor-pointer bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border-l-4 border-red-500 dark:border-red-400 hover:bg-red-50 dark:hover:bg-slate-700 transition-colors group relative">
+                    <div
+                        class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500">
+                        ⬇️</div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">แทงชำรุด (คลิกเพื่อโหลด)</p>
+                    <span class="text-2xl font-black text-red-500 dark:text-red-400 leading-none"
+                        id="stat-retired">0</span>
+                </div>
+            </div>
+            <div class="flex-1 grid grid-rows-2 gap-3 min-h-0">
+                <div class="grid grid-cols-2 gap-3 min-h-0">
+                    <div
+                        class="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col min-h-0">
+                        <h3 class="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">สถานะ</h3>
+                        <div class="flex-1 relative min-h-0"><canvas id="statusChart"></canvas></div>
+                    </div>
+                    <div
+                        class="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col min-h-0">
+                        <h3 class="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">ยี่ห้อ</h3>
+                        <div class="flex-1 relative min-h-0"><canvas id="brandChart"></canvas></div>
+                    </div>
+                </div>
+                <div
+                    class="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col min-h-0">
+                    <h3 class="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">ประเภทอุปกรณ์</h3>
+                    <div class="flex-1 relative min-h-0"><canvas id="deviceChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: LIST VIEW -->
+        <div id="list-view" class="flex-1 flex flex-col overflow-hidden hidden fade-in">
+            <div class="flex gap-2 mb-3">
+                <div class="relative flex-1">
+                    <input type="search" id="searchBox" placeholder="ค้นหาครุภัณฑ์..."
+                        class="w-full pl-4 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 shadow-sm focus:ring-2 focus:ring-indigo-500 text-sm bg-white dark:bg-slate-800 dark:text-white">
+                </div>
+                <button id="toggleFilterBtn" onclick="toggleFilterRow()"
+                    class="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300 hover:text-indigo-600 hover:border-indigo-300 rounded-xl shadow-sm transition-all flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                    <span class="hidden sm:inline text-xs font-bold">ตัวกรองละเอียด</span>
+                </button>
+            </div>
+            <div
+                class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg flex-1 overflow-hidden border border-slate-200 dark:border-slate-700 relative flex flex-col">
+                <div class="overflow-auto custom-scrollbar flex-1 mobile-table-scroll">
+                    <table class="min-w-full relative border-separate border-spacing-0">
+                        <thead class="bg-slate-50 dark:bg-slate-700 sticky top-0 z-10 shadow-sm">
+                            <tr>
+                                <th
+                                    class="px-4 py-4 text-center w-10 border-b-2 border-slate-300 border-r dark:border-slate-500">
+                                    <input type="checkbox" id="selectAll"
+                                        class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer">
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 select-none whitespace-nowrap"
+                                    onclick="handleSort('assetID')">
+                                    รหัส <span id="sort-icon-assetID" class="text-slate-400 text-[10px] ml-1">▼</span>
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 select-none whitespace-nowrap"
+                                    onclick="handleSort('deviceName')">
+                                    อุปกรณ์ <span id="sort-icon-deviceName"
+                                        class="text-slate-400 text-[10px] ml-1"></span>
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 select-none whitespace-nowrap"
+                                    onclick="handleSort('model')">
+                                    รุ่น <span id="sort-icon-model" class="text-slate-400 text-[10px] ml-1"></span>
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 select-none whitespace-nowrap"
+                                    onclick="handleSort('division')">
+                                    สังกัด <span id="sort-icon-division" class="text-slate-400 text-[10px] ml-1"></span>
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 select-none whitespace-nowrap"
+                                    onclick="handleSort('department')">
+                                    หน่วยงาน <span id="sort-icon-department"
+                                        class="text-slate-400 text-[10px] ml-1"></span>
+                                </th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 select-none whitespace-nowrap"
+                                    onclick="handleSort('floor')">
+                                    ชั้น <span id="sort-icon-floor" class="text-slate-400 text-[10px] ml-1"></span>
+                                </th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 select-none whitespace-nowrap"
+                                    onclick="handleSort('status')">
+                                    สถานะ <span id="sort-icon-status" class="text-slate-400 text-[10px] ml-1"></span>
+                                </th>
+                                <th
+                                    class="px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 whitespace-nowrap">
+                                    จัดการ
+                                </th>
+                            </tr>
+
+                            <tr id="filter-row"
+                                class="hidden bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-600">
+                                <th class="p-1"></th>
+                                <th class="p-1"><input type="text" placeholder="พิมพ์รหัส..."
+                                        oninput="handleColumnFilter('assetID', this.value)"
+                                        class="w-full text-[10px] p-1 rounded border dark:bg-slate-700 dark:border-slate-600 dark:text-white">
+                                </th>
+                                <th class="p-1"><input type="text" placeholder="พิมพ์ชื่อ..."
+                                        oninput="handleColumnFilter('deviceName', this.value)"
+                                        class="w-full text-[10px] p-1 rounded border dark:bg-slate-700 dark:border-slate-600 dark:text-white">
+                                </th>
+
+                                <th class="p-1"><select id="filter-model"
+                                        onchange="handleColumnFilter('model', this.value)"
+                                        class="w-full text-[10px] p-1 rounded border dark:bg-slate-700 dark:border-slate-600 dark:text-white cursor-pointer">
+                                        <option value="">ทุกรุ่น</option>
+                                    </select></th>
+                                <th class="p-1"><select id="filter-division"
+                                        onchange="handleColumnFilter('division', this.value)"
+                                        class="w-full text-[10px] p-1 rounded border dark:bg-slate-700 dark:border-slate-600 dark:text-white cursor-pointer">
+                                        <option value="">ทุกสังกัด</option>
+                                    </select></th>
+                                <th class="p-1"><select id="filter-department"
+                                        onchange="handleColumnFilter('department', this.value)"
+                                        class="w-full text-[10px] p-1 rounded border dark:bg-slate-700 dark:border-slate-600 dark:text-white cursor-pointer">
+                                        <option value="">ทุกหน่วยงาน</option>
+                                    </select></th>
+                                <th class="p-1"><select id="filter-floor"
+                                        onchange="handleColumnFilter('floor', this.value)"
+                                        class="w-full text-[10px] p-1 rounded border dark:bg-slate-700 dark:border-slate-600 dark:text-white cursor-pointer text-center">
+                                        <option value="">ทุกชั้น</option>
+                                    </select></th>
+
+                                <th class="p-1">
+                                    <select onchange="handleColumnFilter('status', this.value)"
+                                        class="w-full text-[10px] p-1 rounded border dark:bg-slate-700 dark:border-slate-600 dark:text-white cursor-pointer">
+                                        <option value="">ทุกสถานะ</option>
+                                        <option value="ใช้งาน">ใช้งาน</option>
+                                        <option value="ส่งคืน">ส่งคืน</option>
+                                        <option value="แทงชำรุด">แทงชำรุด</option>
+                                    </select>
+                                </th>
+                                <th class="p-1 text-center">
+                                    <button onclick="clearColumnFilters()"
+                                        class="px-2 py-1 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded text-[10px] font-bold w-full transition-colors"
+                                        title="ล้างตัวกรองทั้งหมด">
+                                        ล้าง
+                                    </button>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="asset-table-body"
+                            class="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700"></tbody>
+                    </table>
+                </div>
+                <div
+                    class="bg-slate-50 dark:bg-slate-700 border-t dark:border-slate-600 px-4 py-2 flex justify-between items-center text-xs">
+                    <span id="record-count" class="font-medium text-slate-500 dark:text-slate-300">0 รายการ</span>
+                    <div class="space-x-2 flex items-center">
+                        <button id="firstPage"
+                            class="px-3 py-1.5 border dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-slate-700 font-bold text-[10px] sm:text-xs text-slate-600 dark:text-slate-300"
+                            title="หน้าแรก">|&lt;</button>
+                        <button id="prevPage"
+                            class="px-3 py-1.5 border dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-slate-700 dark:text-slate-300">ก่อนหน้า</button>
+                        <span id="pageIndicator"
+                            class="font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1.5 rounded-lg">1</span>
+                        <button id="nextPage"
+                            class="px-3 py-1.5 border dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-slate-700 dark:text-slate-300">ถัดไป</button>
+                        <button id="lastPage"
+                            class="px-3 py-1.5 border dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-slate-700 font-bold text-[10px] sm:text-xs text-slate-600 dark:text-slate-300"
+                            title="หน้าสุดท้าย">&gt;|</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: AUDIT REPORT -->
+        <div id="audit-view" class="flex-1 flex flex-col overflow-hidden hidden fade-in">
+            <div
+                class="flex-none mb-3 flex flex-col sm:flex-row justify-between items-center bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 gap-3">
+                <div class="flex items-center gap-3">
+                    <h2 class="text-lg font-bold text-slate-800 dark:text-white">รายงานการนับ</h2>
+                    <select id="auditYearSelect"
+                        class="text-xs font-bold bg-slate-100 dark:bg-slate-700 dark:text-white border-none rounded px-2 py-1 cursor-pointer outline-none text-slate-700"></select>
+                    <button id="addYearBtn"
+                        class="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-500 dark:text-slate-400"
+                        title="เพิ่มปี">+</button>
+                </div>
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <input type="search" id="auditSearchBox" placeholder="ค้นหา..."
+                        class="w-full sm:w-48 px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-400">
+                    <div class="flex gap-1">
+                        <button id="exportAuditBtnDirect"
+                            class="px-3 py-2 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 text-xs font-bold rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 flex items-center transition-all">Excel</button>
+                        <button id="btnGenPDF"
+                            class="px-3 py-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs font-bold rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 flex items-center transition-all">PDF</button>
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-cols-3 gap-3 mb-3 flex-none">
+                <div id="card-audit-total"
+                    class="cursor-pointer bg-slate-50 dark:bg-slate-700 p-3 rounded-xl shadow-sm border dark:border-slate-600 text-center ring-2 ring-indigo-500 dark:ring-indigo-400">
+                    <p class="text-xs text-slate-400 dark:text-slate-300 font-bold uppercase">ทั้งหมด</p><span
+                        id="audit-stat-total" class="text-xl font-black text-slate-700 dark:text-white">0</span>
+                </div>
+                <div id="card-audit-counted"
+                    class="cursor-pointer bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border-l-4 border-emerald-500 dark:border-emerald-400 text-center">
+                    <p class="text-xs text-slate-400 dark:text-slate-300 font-bold uppercase">นับแล้ว</p><span
+                        id="audit-stat-counted"
+                        class="text-xl font-black text-emerald-600 dark:text-emerald-400">0</span>
+                </div>
+                <div id="card-audit-missing"
+                    class="cursor-pointer bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border-l-4 border-red-500 dark:border-red-400 text-center">
+                    <p class="text-xs text-slate-400 dark:text-slate-300 font-bold uppercase">ยังไม่นับ</p><span
+                        id="audit-stat-missing" class="text-xl font-black text-red-500 dark:text-red-400">0</span>
+                </div>
+            </div>
+            <div
+                class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg flex-1 overflow-hidden border border-slate-200 dark:border-slate-700 relative flex flex-col">
+                <div class="overflow-auto custom-scrollbar flex-1 mobile-table-scroll">
+                    <table class="min-w-full relative border-separate border-spacing-0">
+                        <thead class="bg-slate-50 dark:bg-slate-700 sticky top-0 shadow-sm z-10">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 cursor-pointer whitespace-nowrap"
+                                    onclick="handleAuditSort('assetID')">รหัส <span id="audit-sort-icon-assetID"></span>
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 cursor-pointer whitespace-nowrap"
+                                    onclick="handleAuditSort('deviceName')">ชื่ออุปกรณ์ <span
+                                        id="audit-sort-icon-deviceName"></span></th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 cursor-pointer whitespace-nowrap"
+                                    onclick="handleAuditSort('auditLocation')">สังกัด <span
+                                        id="audit-sort-icon-auditLocation"></span></th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 cursor-pointer whitespace-nowrap"
+                                    onclick="handleAuditSort('department')">หน่วยงาน <span
+                                        id="audit-sort-icon-department"></span></th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 cursor-pointer whitespace-nowrap"
+                                    onclick="handleAuditSort('floor')">ชั้น <span id="audit-sort-icon-floor"></span>
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 cursor-pointer whitespace-nowrap"
+                                    onclick="handleAuditSort('isAudited')">สถานะ <span
+                                        id="audit-sort-icon-isAudited"></span></th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 cursor-pointer whitespace-nowrap"
+                                    onclick="handleAuditSort('auditDate')">ผู้ตรวจ/วันที่ <span
+                                        id="audit-sort-icon-auditDate"></span></th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 whitespace-nowrap">
+                                    หมายเหตุ</th>
+                                <th
+                                    class="px-6 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 whitespace-nowrap">
+                                    รูปภาพ</th>
+                                <th
+                                    class="px-6 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-300 uppercase border-b-2 border-slate-300 border-r dark:border-slate-500 whitespace-nowrap">
+                                    จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-table-body"
+                            class="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700"></tbody>
+                    </table>
+                </div>
+                <div
+                    class="bg-slate-50 dark:bg-slate-700 border-t border-slate-200 dark:border-slate-600 px-4 py-2 flex justify-between items-center text-xs">
+                    <div class="flex items-center"><span id="audit-record-count"
+                            class="mr-2 text-slate-500 dark:text-slate-300">0 รายการ</span><span
+                            id="audit-filter-status"
+                            class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded text-[10px] font-bold border border-indigo-100 dark:border-indigo-700">แสดงทั้งหมด</span>
+                    </div>
+                    <div class="space-x-2 flex items-center">
+                        <button id="auditFirstPage"
+                            class="px-3 py-1.5 border dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 font-bold text-[10px] sm:text-xs text-slate-600 dark:text-slate-300"
+                            title="หน้าแรก">|&lt;</button>
+                        <button id="auditPrevPage"
+                            class="px-3 py-1.5 border dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">ก่อนหน้า</button>
+                        <span id="auditPageIndicator"
+                            class="font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1.5 rounded-lg">1</span>
+                        <button id="auditNextPage"
+                            class="px-3 py-1.5 border dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">ถัดไป</button>
+                        <button id="auditLastPage"
+                            class="px-3 py-1.5 border dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 font-bold text-[10px] sm:text-xs text-slate-600 dark:text-slate-300"
+                            title="หน้าสุดท้าย">&gt;|</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ASSET FORM -->
+    <div id="form-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-2 hidden z-50">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-6xl h-full max-h-[95vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-700">
+
+            <form id="asset-form" class="flex flex-col h-full">
+                <div
+                    class="flex-none px-4 py-3 border-b dark:border-slate-700 bg-white dark:bg-slate-800 flex justify-between items-center z-10">
+                    <div class="flex items-center gap-3">
+                        <h2 id="form-title" class="text-lg font-black text-slate-800 dark:text-white">รายละเอียด</h2>
+                        <span id="scanned-badge"
+                            class="hidden bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">Scan
+                            QR</span>
+                        <div class="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-0.5 ml-4">
+                            <button type="button" id="tab-btn-details" onclick="switchTab('details')"
+                                class="px-3 py-1 text-xs font-bold rounded-md transition-all bg-white dark:bg-slate-600 shadow-sm text-indigo-600 dark:text-indigo-300">ข้อมูล</button>
+                            <button type="button" id="tab-btn-timeline" onclick="switchTab('timeline')"
+                                class="px-3 py-1 text-xs font-bold rounded-md transition-all text-slate-500 dark:text-slate-400 hover:text-indigo-600">ประวัติ</button>
+                        </div>
+                    </div>
+                    <button type="button" id="closeModalIcon"
+                        class="text-slate-400 hover:text-red-500 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-6 bg-slate-50/50 dark:bg-slate-900/50 custom-scrollbar">
+
+                    <div id="tab-content-details" class="h-full">
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+
+                            <div class="lg:col-span-8 flex flex-col gap-4">
+
+                                <div class="grid grid-cols-12 gap-4">
+                                    <div class="col-span-4">
+                                        <label
+                                            class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">รหัสครุภัณฑ์
+                                            (Asset ID)</label>
+                                        <input type="text" id="assetID"
+                                            class="w-full px-3 py-2 text-sm font-mono font-bold border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                            required>
+                                    </div>
+                                    <div class="col-span-8">
+                                        <label
+                                            class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">ชื่อรายการ
+                                            (Device Name)</label>
+                                        <input type="text" id="deviceName"
+                                            class="w-full px-3 py-2 text-sm border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                            required>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label
+                                                class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">รุ่น
+                                                (Model)</label>
+                                            <div class="flex gap-2">
+                                                <input type="text" id="model"
+                                                    class="w-full px-3 py-2 text-xs border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                                                    placeholder="ระบุรุ่น...">
+                                                <button type="button" id="btn-google-search"
+                                                    class="p-2 bg-blue-50 text-blue-600 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
+                                                    title="ค้นรูปใน Google"><svg class="w-4 h-4" fill="none"
+                                                        stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                                    </svg></button>
+                                                <button type="button" id="btn-paste-image"
+                                                    class="p-2 bg-pink-50 text-pink-600 rounded-lg border border-pink-200 hover:bg-pink-100 transition-colors"
+                                                    title="วางรูป (Paste)"><svg class="w-4 h-4" fill="none"
+                                                        stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01">
+                                                        </path>
+                                                    </svg></button>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">ยี่ห้อ
+                                                (Brand)</label>
+                                            <input type="text" id="brand"
+                                                class="w-full px-3 py-2 text-xs border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white">
+                                        </div>
+                                    </div>
+                                    <p class="text-[10px] text-slate-400 mt-1.5 italic flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        เคล็ดลับ: Copy รูปจากเว็บ แล้วกดปุ่ม "วาง" หรือ Ctrl+V
+                                    </p>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">สังกัด
+                                            (Division)</label>
+                                        <select id="location"
+                                            class="w-full px-3 py-2 text-xs border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                                            <option value="">เลือกสังกัด</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">หน่วยงาน
+                                            (Department)</label>
+                                        <input type="text" id="department" list="departmentList"
+                                            class="w-full px-3 py-2 text-xs border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white">
+                                        <datalist id="departmentList"></datalist>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">สถานะ
+                                            (Status)</label>
+                                        <select id="status"
+                                            class="w-full px-3 py-2 text-xs border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white font-bold">
+                                            <option value="ใช้งาน">ใช้งาน</option>
+                                            <option value="ส่งคืน">ส่งคืน</option>
+                                            <option value="แทงชำรุด">แทงชำรุด</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">ชั้น
+                                            (Floor)</label>
+                                        <select id="floor"
+                                            class="w-full px-3 py-2 text-xs border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white text-center">
+                                            <option value="">-</option>
+                                            <option value="FG">FG</option>
+                                            <option value="F1">F1</option>
+                                            <option value="F2">F2</option>
+                                            <option value="F3">F3</option>
+                                            <option value="F4">F4</option>
+                                            <option value="F5">F5</option>
+                                            <option value="F6">F6</option>
+                                            <option value="F7">F7</option>
+                                            <option value="F8">F8</option>
+                                            <option value="F9">F9</option>
+                                            <option value="F10">F10</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label
+                                        class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">หมายเหตุ
+                                        (Remark)</label>
+                                    <textarea id="remark" rows="2"
+                                        class="w-full px-3 py-2 text-xs border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white resize-none"
+                                        placeholder="ระบุรายละเอียดเพิ่มเติม..."></textarea>
+                                </div>
+
+                                <div id="view-audit-note-wrapper" class="hidden mt-auto">
+                                    <div id="view-audit-detail-content" class="text-xs"></div>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-4 flex flex-col gap-4 h-full">
+
+                                <div id="qr-section"
+                                    class="hidden p-4 bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-600 flex flex-col items-center justify-center shadow-sm">
+                                    <div class="bg-white p-2 rounded-lg border border-slate-100">
+                                        <img id="qr-code-img" src="" class="w-28 h-28 object-contain" alt="QR Code">
+                                    </div>
+                                    <span
+                                        class="text-[10px] text-slate-500 dark:text-slate-300 font-mono mt-2 bg-slate-100 dark:bg-slate-600 px-2 py-0.5 rounded">สแกนเพื่อดูข้อมูล</span>
+                                </div>
+
+                                <div class="flex flex-col flex-1 min-h-0">
+                                    <label
+                                        class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">รูปภาพ(Model)</label>
+                                    <div
+                                        class="relative border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-800 h-64 flex justify-center items-center group overflow-hidden transition-colors hover:border-indigo-400 dark:hover:border-indigo-500">
+
+                                        <input type="file" id="asset-image-input" accept="image/*"
+                                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
+
+                                        <div id="image-placeholder"
+                                            class="text-center pointer-events-none flex flex-col items-center justify-center w-full h-full">
+                                            <div
+                                                class="bg-white dark:bg-slate-700 p-4 rounded-full mb-3 shadow-sm text-indigo-500 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                                                <svg class="w-8 h-8" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                                    </path>
+                                                </svg>
+                                            </div>
+                                            <p class="text-sm font-bold text-slate-600 dark:text-slate-300">
+                                                คลิกเพื่ออัปโหลดรูปภาพ</p>
+                                            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                                                หรือลากไฟล์มาวางที่นี่</p>
+                                        </div>
+
+                                        <div id="asset-image-preview-container"
+                                            class="absolute inset-0 hidden bg-slate-900 z-30 flex items-center justify-center p-2">
+                                            <img id="asset-image-img" src=""
+                                                class="h-full w-auto object-contain rounded-lg shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                                onclick="window.open(this.src,'_blank')" title="คลิกเพื่อดูรูปใหญ่">
+
+                                            <div class="absolute top-2 right-2 flex gap-2">
+                                                <label for="asset-image-input"
+                                                    class="cursor-pointer bg-white/90 text-slate-700 p-2 rounded-lg shadow-lg hover:bg-white transition-colors z-50"
+                                                    title="เปลี่ยนรูป">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
+                                                        </path>
+                                                    </svg>
+                                                </label>
+                                                <button type="button" id="delete-image-btn"
+                                                    class="bg-red-500/90 text-white p-2 rounded-lg shadow-lg hover:bg-red-600 transition-colors z-50"
+                                                    title="ลบรูป">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                        </path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div id="tab-content-timeline" class="hidden h-full overflow-y-auto">
+                        <div id="timeline-loading" class="text-center py-4 text-xs text-slate-400">กำลังโหลด...</div>
+                        <div id="timeline-empty" class="text-center py-4 text-xs text-slate-400 hidden">ไม่มีประวัติ
+                        </div>
+                        <div id="timeline-list" class="space-y-0 pl-2 pt-2"></div>
+                    </div>
+                </div>
+
+                <div
+                    class="flex-none px-4 py-3 bg-slate-50 dark:bg-slate-800 border-t dark:border-slate-700 flex justify-between items-center z-10">
+                    <button type="button" id="countAssetBtn"
+                        class="hidden px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded hover:bg-emerald-700 flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg> ตรวจนับ
+                    </button>
+
+                    <div class="flex gap-2 ml-auto">
+                        <button type="button" id="editButton"
+                            class="hidden px-4 py-2 bg-orange-500 text-white text-xs font-bold rounded hover:bg-orange-600">แก้ไข</button>
+                        <button type="button" id="cancelButton"
+                            class="px-4 py-2 bg-white dark:bg-slate-700 border dark:border-slate-600 text-slate-700 dark:text-slate-300 text-xs font-bold rounded hover:bg-slate-50">ปิด</button>
+                        <button type="submit" id="saveButton"
+                            class="px-6 py-2 bg-indigo-600 text-white text-xs font-bold rounded shadow hover:bg-indigo-700">บันทึก</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODALS: AUDIT & ALERT & CONFIRM -->
+    <div id="audit-modal"
+        class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 hidden z-[60]">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl p-6 transform transition-all flex flex-col max-h-[90vh]">
+
+            <div class="flex-none flex items-center mb-4 pb-4 border-b dark:border-slate-700 relative">
+                <div
+                    class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mr-3">
+                    ✔</div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800 dark:text-white">ยืนยันการตรวจนับ</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">ปีงบประมาณ: <span id="audit-modal-year"
+                            class="font-bold text-indigo-600 dark:text-indigo-400"></span></p>
+                </div>
+                <div id="audit-confirmed-badge"
+                    class="hidden absolute top-0 right-0 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs font-bold px-2.5 py-0.5 rounded border border-green-400 dark:border-green-700">
+                    ยืนยันแล้ว</div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+
+                    <div class="md:col-span-5 space-y-4">
+                        <div
+                            class="bg-slate-50 dark:bg-slate-700 p-4 rounded-xl border border-slate-200 dark:border-slate-600 shadow-sm">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">รหัสครุภัณฑ์
+                            </p>
+                            <p id="audit-asset-id"
+                                class="text-lg font-black text-slate-800 dark:text-white font-mono tracking-tight"></p>
+                            <div class="h-px bg-slate-200 dark:bg-slate-600 my-2"></div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">ชื่อรายการ</p>
+                            <p id="audit-asset-name"
+                                class="text-sm font-medium text-slate-600 dark:text-slate-300 leading-snug"></p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">📸 รูปภาพ ณ
+                                จุดตรวจ (ถ้ามี)</label>
+                            <div class="relative">
+                                <input type="file" id="audit-file-input" accept="image/*"
+                                    class="block w-full text-xs text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-50 dark:file:bg-indigo-900/30 file:text-indigo-700 dark:file:text-indigo-300 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-900/50 transition-colors cursor-pointer">
+                            </div>
+                            <div id="audit-image-preview-container"
+                                class="mt-3 hidden relative w-full h-48 group bg-slate-100 dark:bg-slate-900 rounded-lg flex items-center justify-center border border-slate-200 dark:border-slate-700 overflow-hidden">
+                                <img id="audit-image-img" src="" class="h-full w-auto object-contain">
+                                <button type="button" id="audit-delete-image-btn"
+                                    class="absolute top-2 right-2 bg-red-500/90 text-white rounded-lg p-1.5 shadow-md hover:bg-red-600 transition-all backdrop-blur-sm">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-7 space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="col-span-2">
+                                <label
+                                    class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">สถานที่ปัจจุบัน
+                                    (สังกัด)</label>
+                                <select id="audit-location"
+                                    class="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
+                                    <option value="">-- เลือก --</option>
+                                </select>
+                            </div>
+
+                            <div class="col-span-2 sm:col-span-1">
+                                <label
+                                    class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">หน่วยงาน</label>
+                                <input type="text" id="audit-department" list="auditDepartmentList"
+                                    class="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
+                                    placeholder="ระบุหน่วยงาน...">
+                                <datalist id="auditDepartmentList"></datalist>
+                            </div>
+
+                            <div class="col-span-2 sm:col-span-1">
+                                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">ชั้น
+                                    (Floor)</label>
+                                <select id="audit-floor"
+                                    class="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm text-center font-bold">
+                                    <option value="">-- เลือก --</option>
+                                    <option value="FG">FG</option>
+                                    <option value="F1">F1</option>
+                                    <option value="F2">F2</option>
+                                    <option value="F3">F3</option>
+                                    <option value="F4">F4</option>
+                                    <option value="F5">F5</option>
+                                    <option value="F6">F6</option>
+                                    <option value="F7">F7</option>
+                                    <option value="F8">F8</option>
+                                    <option value="F9">F9</option>
+                                    <option value="F10">F10</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">สถานะครุภัณฑ์</label>
+                            <select id="audit-status"
+                                class="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
+                                <option value="ใช้งาน">ใช้งานปกติ</option>
+                                <option value="ส่งคืน">ส่งคืน / ไม่ได้ใช้งาน</option>
+                                <option value="แทงชำรุด">ชำรุด / รอจำหน่าย</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">หมายเหตุการตรวจนับ</label>
+                            <textarea id="audit-note" rows="3"
+                                class="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm resize-none"
+                                placeholder="เช่น พบที่ห้องอื่น, สภาพเก่า, ฯลฯ"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-none flex justify-end gap-3 mt-6 pt-4 border-t dark:border-slate-700">
+                <button id="audit-delete-entry-btn"
+                    class="hidden mr-auto px-4 py-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm font-bold rounded-xl hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                        </path>
+                    </svg>
+                    ลบข้อมูลการนับ
+                </button>
+                <button id="audit-cancel-btn"
+                    class="px-5 py-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-sm font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">ยกเลิก</button>
+                <button id="audit-confirm-btn"
+                    class="px-6 py-2.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-500/30 transition-all flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    ยืนยันการนับ
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="alert-modal"
+        class="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 hidden z-[70] backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 text-center max-w-sm">
+            <h3 id="alert-title" class="text-xl font-bold mb-2 text-slate-800 dark:text-white">ข้อความ</h3>
+            <p id="alert-message" class="text-slate-600 dark:text-slate-300 mb-4"></p><button
+                onclick="document.getElementById('alert-modal').classList.add('hidden')"
+                class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold">ตกลง</button>
+        </div>
+    </div>
+    <div id="confirm-modal"
+        class="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 hidden z-[60] backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 text-center">
+            <div
+                class="mb-4 inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400">
+                ⚠️</div>
+            <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2">ลบรายการ?</h3>
+            <p class="text-slate-600 dark:text-slate-300 mb-6">การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+            <div class="flex justify-center gap-3"><button id="confirm-cancel-button"
+                    class="px-5 py-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">ยกเลิก</button><button
+                    id="confirm-delete-button"
+                    class="px-5 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors">ลบ</button>
+            </div>
+        </div>
+    </div>
+    <div id="scanner-modal"
+        class="fixed inset-0 bg-black/90 z-[90] flex flex-col items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="w-full max-w-sm bg-white rounded-2xl overflow-hidden shadow-2xl relative">
+            <div id="reader" class="w-full h-auto bg-black"></div>
+            <div class="absolute top-2 right-2">
+                <button onclick="stopScanner()"
+                    class="bg-white/20 hover:bg-white/40 text-white rounded-full p-2 backdrop-blur-md">✕</button>
+            </div>
+        </div>
+        <p class="text-white mt-4 text-sm font-medium">จัด QR Code ให้อยู่ในกรอบเพื่อสแกน</p>
+        <button onclick="stopScanner()"
+            class="mt-6 px-6 py-2 bg-white text-slate-900 font-bold rounded-full hover:bg-slate-200 transition-colors">ยกเลิก</button>
+    </div>
+    <div id="delete-all-modal"
+        class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4 fade-in">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 text-center border-2 border-red-100 dark:border-red-900/50 transform transition-all scale-100">
+            <div
+                class="w-20 h-20 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4 ring-4 ring-red-100 dark:ring-red-900/40">
+                <svg class="w-10 h-10 text-red-500 dark:text-red-400" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                    </path>
+                </svg>
+            </div>
+            <h3 class="text-2xl font-black text-slate-800 dark:text-white mb-2">ลบข้อมูลทั้งหมด?</h3>
+            <p class="text-slate-600 dark:text-slate-300 mb-6 text-sm leading-relaxed">
+                ข้อมูลครุภัณฑ์และประวัติการทำงานทั้งหมดจะถูกลบ<br>
+                <span
+                    class="text-red-500 font-bold bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded mt-1 inline-block">⚠️
+                    ไม่สามารถกู้คืนได้ (Can't Undo)</span>
+            </p>
+            <div class="flex gap-3 justify-center">
+                <button onclick="document.getElementById('delete-all-modal').classList.add('hidden')"
+                    class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors w-full">ยกเลิก</button>
+                <button id="confirm-delete-all-btn"
+                    class="px-5 py-2.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-lg shadow-red-600/30 transition-all w-full flex justify-center items-center gap-2">
+                    <span>ยืนยันลบ</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="delete-audit-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4 fade-in">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-sm w-full p-6 relative transform transition-all">
+            <div class="text-center">
+                <div
+                    class="w-14 h-14 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg class="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                        </path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-2">ลบรายการตรวจนับนี้?</h3>
+                <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">
+                    ข้อมูลการตรวจนับของปีนี้จะถูกลบออก<br>แต่ข้อมูลครุภัณฑ์หลักจะยังคงอยู่
+                </p>
+                <div class="flex gap-2 justify-center">
+                    <button onclick="document.getElementById('delete-audit-modal').classList.add('hidden')"
+                        class="flex-1 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 text-sm transition-colors">ยกเลิก</button>
+                    <button id="confirm-delete-audit-btn"
+                        class="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 shadow-md text-sm transition-colors">ลบรายการ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="batch-delete-modal"
+        class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4 fade-in">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center border border-slate-200 dark:border-slate-700 transform transition-all scale-100">
+            <div
+                class="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4 ring-4 ring-red-100 dark:ring-red-900/40">
+                <svg class="w-8 h-8 text-red-500 dark:text-red-400" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                    </path>
+                </svg>
+            </div>
+            <h3 class="text-xl font-black text-slate-800 dark:text-white mb-2">ยืนยันการลบกลุ่ม?</h3>
+            <p class="text-slate-600 dark:text-slate-300 mb-6 text-sm">
+                คุณต้องการลบข้อมูลจำนวน <span id="batch-delete-count"
+                    class="font-bold text-red-600 dark:text-red-400 text-lg">0</span> รายการ ใช่หรือไม่?
+            </p>
+            <div class="flex gap-3 justify-center">
+                <button onclick="document.getElementById('batch-delete-modal').classList.add('hidden')"
+                    class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">ยกเลิก</button>
+                <button id="confirm-batch-delete-btn"
+                    class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-lg shadow-red-600/30 transition-all">
+                    ยืนยันลบ
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="processing-modal"
+        class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[120] hidden flex items-center justify-center p-4 fade-in">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center border border-slate-200 dark:border-slate-700 transform transition-all scale-100 flex flex-col items-center">
+            <div class="relative w-20 h-20 mb-6">
+                <div class="absolute inset-0 border-4 border-slate-100 dark:border-slate-700 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin">
+                </div>
+                <div class="absolute inset-0 flex items-center justify-center text-indigo-500 dark:text-indigo-400">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <h3 id="process-title" class="text-xl font-black text-slate-800 dark:text-white mb-2">กำลังเตรียมไฟล์...
+            </h3>
+            <p id="process-message" class="text-slate-500 dark:text-slate-400 text-sm">กรุณารอสักครู่
+                ระบบกำลังรวบรวมข้อมูล</p>
+        </div>
+    </div>
+    <div id="clear-cache-modal"
+        class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4 fade-in">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center border border-slate-200 dark:border-slate-700 transform transition-all scale-100">
+            <div
+                class="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4 ring-4 ring-amber-50 dark:ring-amber-900/20">
+                <svg class="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                    </path>
+                </svg>
+            </div>
+
+            <h3 class="text-xl font-black text-slate-800 dark:text-white mb-2">ล้างประวัติเก่า?</h3>
+            <p class="text-slate-600 dark:text-slate-300 mb-4 text-sm">
+                ระบบจะลบ Log การทำงานเก่าๆ ออก<br>เพื่อเพิ่มความเร็วให้ฐานข้อมูล
+            </p>
+
+            <div
+                class="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/50 rounded-xl p-3 mb-6 text-left shadow-sm">
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 text-red-500 mt-0.5">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-red-700 dark:text-red-300 uppercase mb-0.5">คำเตือนสำคัญ</h4>
+                        <p class="text-xs text-red-600 dark:text-red-400 leading-relaxed">
+                            กรุณา <b>"สำรองข้อมูล" (Backup)</b> ก่อนดำเนินการ ข้อมูลที่ถูกลบไปแล้วจะไม่สามารถกู้คืนได้
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3 justify-center">
+                <button onclick="document.getElementById('clear-cache-modal').classList.add('hidden')"
+                    class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm">
+                    ยกเลิก
+                </button>
+                <button id="confirm-clear-cache-btn"
+                    class="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-600/30 transition-all text-sm flex items-center justify-center gap-2">
+                    <span>ยืนยันลบ</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="duplicate-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden z-[90] transition-opacity">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center border-t-4 border-amber-400 transform transition-all scale-100 animate-fade-in-up">
+
+            <div
+                class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-amber-100 dark:bg-amber-900/30 mb-6 ring-4 ring-amber-50 dark:ring-amber-900/10">
+                <svg class="h-8 w-8 text-amber-500 dark:text-amber-400" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+
+            <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2">รหัสซ้ำ! (Duplicate ID)</h3>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mb-2">
+                รหัสครุภัณฑ์ <span id="dup-id-display"
+                    class="font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-700"></span>
+                มีอยู่ในระบบแล้ว
+            </p>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mb-6">กรุณาตรวจสอบและเปลี่ยนรหัสใหม่</p>
+
+            <button onclick="document.getElementById('duplicate-modal').classList.add('hidden')"
+                class="w-full inline-flex justify-center px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-amber-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">
+                เข้าใจแล้ว, จะแก้ไข
+            </button>
+
+        </div>
+    </div>
+    <div id="success-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden z-[90] transition-opacity">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center border-t-4 border-emerald-500 transform transition-all scale-100 animate-fade-in-up">
+
+            <div
+                class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 mb-6 ring-4 ring-emerald-50 dark:ring-emerald-900/10 animate-bounce-short">
+                <svg class="h-8 w-8 text-emerald-500 dark:text-emerald-400" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+
+            <h3 class="text-xl font-black text-slate-800 dark:text-white mb-2">ทำรายการสำเร็จ!</h3>
+            <p id="success-modal-msg" class="text-slate-500 dark:text-slate-400 text-sm mb-6">
+                บันทึกข้อมูลเข้าสู่ระบบเรียบร้อยแล้ว</p>
+
+            <button onclick="document.getElementById('success-modal').classList.add('hidden')"
+                class="w-full inline-flex justify-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-emerald-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 hover:scale-105">
+        </div>
+    </div>
+    </div>
+
+    <div id="alert-modal"
+        class="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 hidden z-[70] backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 text-center max-w-sm">
+            <h3 id="alert-title" class="text-xl font-bold mb-2 text-slate-800 dark:text-white">ข้อความ</h3>
+            <p id="alert-message" class="text-slate-600 dark:text-slate-300 mb-4"></p><button
+                onclick="document.getElementById('alert-modal').classList.add('hidden')"
+                class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold">ตกลง</button>
+        </div>
+    </div>
+    <div id="confirm-modal"
+        class="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 hidden z-[60] backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 text-center">
+            <div
+                class="mb-4 inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400">
+                ⚠️</div>
+            <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2">ลบรายการ?</h3>
+            <p class="text-slate-600 dark:text-slate-300 mb-6">การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+            <div class="flex justify-center gap-3"><button id="confirm-cancel-button"
+                    class="px-5 py-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">ยกเลิก</button><button
+                    id="confirm-delete-button"
+                    class="px-5 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors">ลบ</button>
+            </div>
+        </div>
+    </div>
+    <div id="scanner-modal"
+        class="fixed inset-0 bg-black/90 z-[90] flex flex-col items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="w-full max-w-sm bg-white rounded-2xl overflow-hidden shadow-2xl relative">
+            <div id="reader" class="w-full h-auto bg-black"></div>
+            <div class="absolute top-2 right-2">
+                <button onclick="stopScanner()"
+                    class="bg-white/20 hover:bg-white/40 text-white rounded-full p-2 backdrop-blur-md">✕</button>
+            </div>
+        </div>
+        <p class="text-white mt-4 text-sm font-medium">จัด QR Code ให้อยู่ในกรอบเพื่อสแกน</p>
+        <button onclick="stopScanner()"
+            class="mt-6 px-6 py-2 bg-white text-slate-900 font-bold rounded-full hover:bg-slate-200 transition-colors">ยกเลิก</button>
+    </div>
+    <div id="delete-all-modal"
+        class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4 fade-in">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 text-center border-2 border-red-100 dark:border-red-900/50 transform transition-all scale-100">
+            <div
+                class="w-20 h-20 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4 ring-4 ring-red-100 dark:ring-red-900/40">
+                <svg class="w-10 h-10 text-red-500 dark:text-red-400" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                    </path>
+                </svg>
+            </div>
+            <h3 class="text-2xl font-black text-slate-800 dark:text-white mb-2">ลบข้อมูลทั้งหมด?</h3>
+            <p class="text-slate-600 dark:text-slate-300 mb-6 text-sm leading-relaxed">
+                ข้อมูลครุภัณฑ์และประวัติการทำงานทั้งหมดจะถูกลบ<br>
+                <span
+                    class="text-red-500 font-bold bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded mt-1 inline-block">⚠️
+                    ไม่สามารถกู้คืนได้ (Can't Undo)</span>
+            </p>
+            <div class="flex gap-3 justify-center">
+                <button onclick="document.getElementById('delete-all-modal').classList.add('hidden')"
+                    class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors w-full">ยกเลิก</button>
+                <button id="confirm-delete-all-btn"
+                    class="px-5 py-2.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-lg shadow-red-600/30 transition-all w-full flex justify-center items-center gap-2">
+                    <span>ยืนยันลบ</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="delete-audit-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4 fade-in">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-sm w-full p-6 relative transform transition-all">
+            <div class="text-center">
+                <div
+                    class="w-14 h-14 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg class="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                        </path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-2">ลบรายการตรวจนับนี้?</h3>
+                <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">
+                    ข้อมูลการตรวจนับของปีนี้จะถูกลบออก<br>แต่ข้อมูลครุภัณฑ์หลักจะยังคงอยู่
+                </p>
+                <div class="flex gap-2 justify-center">
+                    <button onclick="document.getElementById('delete-audit-modal').classList.add('hidden')"
+                        class="flex-1 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 text-sm transition-colors">ยกเลิก</button>
+                    <button id="confirm-delete-audit-btn"
+                        class="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 shadow-md text-sm transition-colors">ลบรายการ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="batch-delete-modal"
+        class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4 fade-in">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center border border-slate-200 dark:border-slate-700 transform transition-all scale-100">
+            <div
+                class="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4 ring-4 ring-red-100 dark:ring-red-900/40">
+                <svg class="w-8 h-8 text-red-500 dark:text-red-400" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                    </path>
+                </svg>
+            </div>
+            <h3 class="text-xl font-black text-slate-800 dark:text-white mb-2">ยืนยันการลบกลุ่ม?</h3>
+            <p class="text-slate-600 dark:text-slate-300 mb-6 text-sm">
+                คุณต้องการลบข้อมูลจำนวน <span id="batch-delete-count"
+                    class="font-bold text-red-600 dark:text-red-400 text-lg">0</span> รายการ ใช่หรือไม่?
+            </p>
+            <div class="flex gap-3 justify-center">
+                <button onclick="document.getElementById('batch-delete-modal').classList.add('hidden')"
+                    class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">ยกเลิก</button>
+                <button id="confirm-batch-delete-btn"
+                    class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-lg shadow-red-600/30 transition-all">
+                    ยืนยันลบ
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="processing-modal"
+        class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[120] hidden flex items-center justify-center p-4 fade-in">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center border border-slate-200 dark:border-slate-700 transform transition-all scale-100 flex flex-col items-center">
+            <div class="relative w-20 h-20 mb-6">
+                <div class="absolute inset-0 border-4 border-slate-100 dark:border-slate-700 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin">
+                </div>
+                <div class="absolute inset-0 flex items-center justify-center text-indigo-500 dark:text-indigo-400">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <h3 id="process-title" class="text-xl font-black text-slate-800 dark:text-white mb-2">กำลังเตรียมไฟล์...
+            </h3>
+            <p id="process-message" class="text-slate-500 dark:text-slate-400 text-sm">กรุณารอสักครู่
+                ระบบกำลังรวบรวมข้อมูล</p>
+        </div>
+    </div>
+    <div id="clear-cache-modal"
+        class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4 fade-in">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center border border-slate-200 dark:border-slate-700 transform transition-all scale-100">
+            <div
+                class="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4 ring-4 ring-amber-50 dark:ring-amber-900/20">
+                <svg class="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                    </path>
+                </svg>
+            </div>
+
+            <h3 class="text-xl font-black text-slate-800 dark:text-white mb-2">ล้างประวัติเก่า?</h3>
+            <p class="text-slate-600 dark:text-slate-300 mb-4 text-sm">
+                ระบบจะลบ Log การทำงานเก่าๆ ออก<br>เพื่อเพิ่มความเร็วให้ฐานข้อมูล
+            </p>
+
+            <div
+                class="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/50 rounded-xl p-3 mb-6 text-left shadow-sm">
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 text-red-500 mt-0.5">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-red-700 dark:text-red-300 uppercase mb-0.5">คำเตือนสำคัญ</h4>
+                        <p class="text-xs text-red-600 dark:text-red-400 leading-relaxed">
+                            กรุณา <b>"สำรองข้อมูล" (Backup)</b> ก่อนดำเนินการ ข้อมูลที่ถูกลบไปแล้วจะไม่สามารถกู้คืนได้
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3 justify-center">
+                <button onclick="document.getElementById('clear-cache-modal').classList.add('hidden')"
+                    class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm">
+                    ยกเลิก
+                </button>
+                <button id="confirm-clear-cache-btn"
+                    class="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-600/30 transition-all text-sm flex items-center justify-center gap-2">
+                    <span>ยืนยันลบ</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="duplicate-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden z-[90] transition-opacity">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center border-t-4 border-amber-400 transform transition-all scale-100 animate-fade-in-up">
+
+            <div
+                class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-amber-100 dark:bg-amber-900/30 mb-6 ring-4 ring-amber-50 dark:ring-amber-900/10">
+                <svg class="h-8 w-8 text-amber-500 dark:text-amber-400" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+
+            <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2">รหัสซ้ำ! (Duplicate ID)</h3>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mb-2">
+                รหัสครุภัณฑ์ <span id="dup-id-display"
+                    class="font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-700"></span>
+                มีอยู่ในระบบแล้ว
+            </p>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mb-6">กรุณาตรวจสอบและเปลี่ยนรหัสใหม่</p>
+
+            <button onclick="document.getElementById('duplicate-modal').classList.add('hidden')"
+                class="w-full inline-flex justify-center px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-amber-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">
+                เข้าใจแล้ว, จะแก้ไข
+            </button>
+
+        </div>
+    </div>
+    <div id="success-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden z-[90] transition-opacity">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center border-t-4 border-emerald-500 transform transition-all scale-100 animate-fade-in-up">
+
+            <div
+                class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 mb-6 ring-4 ring-emerald-50 dark:ring-emerald-900/10 animate-bounce-short">
+                <svg class="h-8 w-8 text-emerald-500 dark:text-emerald-400" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+
+            <h3 class="text-xl font-black text-slate-800 dark:text-white mb-2">ทำรายการสำเร็จ!</h3>
+            <p id="success-modal-msg" class="text-slate-500 dark:text-slate-400 text-sm mb-6">
+                บันทึกข้อมูลเข้าสู่ระบบเรียบร้อยแล้ว</p>
+
+            <button onclick="document.getElementById('success-modal').classList.add('hidden')"
+                class="w-full inline-flex justify-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-emerald-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 hover:scale-105">
+                ตกลง, ขอบคุณ
+            </button>
+
+        </div>
+    </div>
+    <script>
+        const WEB_APP_URL = window.location.origin;
+        const URL_PARAMS = Object.fromEntries(new URLSearchParams(window.location.search).entries());
+        // ORGANIZATION_DATA is handled in app.js
+    </script>
+
+    <script src="js/app.js"></script>
+
+    <!-- QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <div id="scanner-modal"
+        class="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 hidden z-[100]">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+            <div
+                class="p-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z">
+                        </path>
+                    </svg>
+                    สแกน QR Code
+                </h3>
+                <button id="closeScannerBtn"
+                    class="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500 dark:text-slate-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 flex-1 overflow-y-auto bg-black">
+                <div id="reader" class="w-full h-full rounded-lg overflow-hidden border-2 border-slate-700"></div>
+            </div>
+            <div class="p-4 bg-slate-50 dark:bg-slate-800/50 text-center">
+                <p class="text-xs text-slate-500 dark:text-slate-400">จัดตำแหน่ง QR Code ให้อยู่ในกรอบเพื่อสแกน</p>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

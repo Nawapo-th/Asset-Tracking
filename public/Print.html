@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Print QR Codes</title>
+    <style>
+        /* Basic Reset */
+        body {
+            margin: 0;
+            font-family: 'Sarabun', 'Arial', sans-serif;
+            background-color: #e2e8f0;
+            padding-top: 80px;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+
+        /* --- TOOLBAR --- */
+        #toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-right: 15px;
+            border-right: 1px solid #ddd;
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #334155;
+        }
+
+        select,
+        input {
+            padding: 6px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        button.print-btn {
+            background-color: #0f766e;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: background 0.2s;
+        }
+
+        button.print-btn:hover {
+            background-color: #115e59;
+        }
+
+        /* --- PREVIEW AREA --- */
+        #print-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-bottom: 50px;
+        }
+
+        /* --- A4 Grid Mode --- */
+        .page-a4 {
+            width: 210mm;
+            height: 297mm;
+            background: white;
+            margin-bottom: 20px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            padding: 10mm;
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 5mm;
+            overflow: hidden;
+        }
+
+        .qr-card-a4 {
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .qr-card-a4 img {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 5px;
+            image-rendering: pixelated;
+        }
+
+        .qr-card-a4 .asset-id {
+            font-weight: bold;
+            font-size: 14pt;
+            color: #000;
+        }
+
+        .qr-card-a4 .device-name {
+            font-size: 11pt;
+            color: #444;
+            max-height: 2.4em;
+            overflow: hidden;
+        }
+
+        /* --- Label Printer Mode --- */
+        .label-container {
+            background: white;
+            margin-bottom: 10px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            padding: 0.5mm;
+            box-sizing: border-box;
+            border: 1px solid #eee;
+            page-break-after: always;
+            overflow: hidden;
+        }
+
+        .label-container.layout-horizontal {
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .label-container.layout-horizontal img {
+            height: 98%;
+            width: auto;
+            max-width: 55%;
+            object-fit: contain;
+            image-rendering: pixelated;
+            margin-right: 1mm;
+            margin-left: 0;
+        }
+
+        .label-container.layout-horizontal .label-text {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            text-align: left;
+            height: 100%;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .label-container.layout-vertical {
+            flex-direction: column;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .label-container.layout-vertical img {
+            width: 95%;
+            height: auto;
+            margin-bottom: 0.5mm;
+            image-rendering: pixelated;
+        }
+
+        .label-text {
+            width: 100%;
+            line-height: 1.1;
+        }
+
+        .asset-id {
+            font-weight: 800;
+            color: black;
+            font-family: monospace;
+            letter-spacing: -0.5px;
+            margin-bottom: 0.5mm;
+            word-break: break-all;
+        }
+
+        .device-name {
+            color: #333;
+            white-space: normal;
+            word-wrap: break-word;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        @media print {
+            @page {
+                margin: 0;
+            }
+
+            body {
+                background: white;
+                padding-top: 0;
+            }
+
+            #toolbar {
+                display: none;
+            }
+
+            #print-container {
+                display: block;
+                padding: 0;
+            }
+
+            .page-a4 {
+                margin: 0;
+                box-shadow: none;
+                page-break-after: always;
+            }
+
+            .label-container {
+                margin: 0;
+                box-shadow: none;
+                border: none;
+                page-break-after: always;
+                break-after: page;
+            }
+        }
+    </style>
+    <style id="dynamic-page-style"></style>
+</head>
+
+<body>
+
+    <div id="toolbar">
+        <div class="toolbar-group">
+            <label>Layout:</label>
+            <select id="layoutSelect" onchange="updateLayout()">
+                <option value="a4">A4 Paper (Grid 3x3)</option>
+                <option value="label" selected>Label Printer (Sticker)</option>
+            </select>
+        </div>
+
+        <div class="toolbar-group" id="labelSizeGroup">
+            <label>Size:</label>
+            <select id="labelPreset" onchange="applyLabelPreset()">
+                <option value="50x30" selected>50mm x 30mm (Standard)</option>
+                <option value="70x50">70mm x 50mm (Medium)</option>
+                <option value="100x100">100mm x 100mm (Big)</option>
+                <option value="custom">Custom...</option>
+            </select>
+            <input type="number" id="customW" placeholder="W" class="w-16 hidden" value="50" onchange="updateLayout()">
+            <span class="hidden custom-x">x</span>
+            <input type="number" id="customH" placeholder="H" class="w-16 hidden" value="30" onchange="updateLayout()">
+        </div>
+
+        <button class="print-btn" onclick="window.print()">🖨️ Print</button>
+    </div>
+
+    <div id="loading" style="text-align: center; font-size: 20px; padding: 50px; color: #666;">Loading...</div>
+    <div id="empty-message" style="display:none; text-align: center; padding: 50px; color: red;">No assets selected.
+    </div>
+    <div id="print-container"></div>
+
+    <script>
+        let allData = [];
+
+        window.onload = function () {
+            fetch('/api/data')
+                .then(response => response.json())
+                .then(dataLoaded)
+                .catch(onError);
+        };
+
+        function dataLoaded(response) {
+            document.getElementById('loading').style.display = 'none';
+            if (response.status !== 'success') return onError(response);
+
+            let data = response.data;
+            const storedSelection = localStorage.getItem('asset_print_selection');
+            if (storedSelection) {
+                const selectedIDs = JSON.parse(storedSelection);
+                if (selectedIDs.length > 0) data = data.filter(row => selectedIDs.includes(String(row.assetID)));
+                localStorage.removeItem('asset_print_selection');
+            }
+
+            if (data.length === 0) { document.getElementById('empty-message').style.display = 'block'; return; }
+            allData = data;
+            applyLabelPreset();
+        }
+
+        function applyLabelPreset() {
+            const val = document.getElementById('labelPreset').value;
+            const wInput = document.getElementById('customW');
+            const hInput = document.getElementById('customH');
+            const xSpan = document.querySelector('.custom-x');
+
+            if (val === 'custom') {
+                wInput.classList.remove('hidden'); hInput.classList.remove('hidden'); xSpan.classList.remove('hidden');
+            } else {
+                wInput.classList.add('hidden'); hInput.classList.add('hidden'); xSpan.classList.add('hidden');
+                const [w, h] = val.split('x');
+                wInput.value = w; hInput.value = h;
+            }
+            updateLayout();
+        }
+
+        function updateLayout() {
+            const container = document.getElementById('print-container');
+            container.innerHTML = '';
+            const layout = document.getElementById('layoutSelect').value;
+            const labelGroup = document.getElementById('labelSizeGroup');
+            const styleTag = document.getElementById('dynamic-page-style');
+
+            if (layout === 'a4') {
+                labelGroup.style.display = 'none';
+                renderA4(container);
+                styleTag.innerHTML = `@media print { @page { size: A4; margin: 0; } }`;
+            } else {
+                labelGroup.style.display = 'flex';
+                const w = parseInt(document.getElementById('customW').value);
+                const h = parseInt(document.getElementById('customH').value);
+                renderLabels(container, w, h);
+                styleTag.innerHTML = `@media print { @page { size: ${w}mm ${h}mm; margin: 0; } }`;
+            }
+        }
+
+        function renderA4(container) {
+            const cardsPerPage = 9; let currentPage = null; let count = 0;
+            allData.forEach((row) => {
+                if (!row.qrCodeUrl) return;
+                if (count % cardsPerPage === 0) {
+                    currentPage = document.createElement('div'); currentPage.className = 'page-a4'; container.appendChild(currentPage);
+                }
+                const card = document.createElement('div'); card.className = 'qr-card-a4';
+                card.innerHTML = `<img src="${row.qrCodeUrl}" /><div class="asset-id">${row.assetID}</div><div class="device-name">${row.deviceName}</div>`;
+                currentPage.appendChild(card); count++;
+            });
+        }
+
+        function renderLabels(container, w, h) {
+            const isLandscape = w > h;
+            allData.forEach(row => {
+                if (!row.qrCodeUrl) return;
+                const label = document.createElement('div');
+                label.className = `label-container ${isLandscape ? 'layout-horizontal' : 'layout-vertical'}`;
+                label.style.width = w + 'mm';
+                label.style.height = h + 'mm';
+
+                const idSize = Math.max(7, Math.min(11, h / 4));
+                const nameSize = Math.max(6, Math.min(9, h / 6));
+
+                label.innerHTML = `
+              <img src="${row.qrCodeUrl}" />
+              <div class="label-text">
+                <div class="asset-id" style="font-size: ${idSize}pt">${row.assetID}</div>
+                <div class="device-name" style="font-size: ${nameSize}pt">${row.deviceName}</div>
+              </div>
+           `;
+                container.appendChild(label);
+            });
+        }
+
+        function onError(e) { console.error(e); document.getElementById('loading').textContent = 'Error: ' + (e.message || e); }
+    </script>
+
+</body>
+
+</html>
