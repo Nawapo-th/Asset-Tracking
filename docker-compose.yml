@@ -13,6 +13,7 @@ services:
       - DB_USER=root
       - DB_PASSWORD=nawapon1234
       - DB_NAME=asset_db
+      - TZ=Asia/Bangkok
     depends_on:
       - db
     restart: always
@@ -24,6 +25,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: nawapon1234
       MYSQL_DATABASE: asset_db
+      TZ: Asia/Bangkok
     ports:
       - "3306:3306"
     volumes:
@@ -37,6 +39,7 @@ services:
       - db
     environment:
       PMA_HOST: db
+      TZ: Asia/Bangkok
     ports:
       - "8080:80"
 

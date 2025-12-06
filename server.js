@@ -14,7 +14,7 @@ const port = 3000;
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static('public')); // Serve frontend files if needed
 
 // Ensure uploads and temp directory exists
@@ -49,10 +49,15 @@ async function logAction(user, action, id, details) {
 
 function saveImage(base64Data, filename) {
     try {
-        const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-        if (!matches || matches.length !== 3) return null;
+        let buffer;
+        if (base64Data.startsWith('data:')) {
+            const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+            if (!matches || matches.length !== 3) return null;
+            buffer = Buffer.from(matches[2], 'base64');
+        } else {
+            buffer = Buffer.from(base64Data, 'base64');
+        }
 
-        const buffer = Buffer.from(matches[2], 'base64');
         const filePath = path.join(uploadDir, filename);
         fs.writeFileSync(filePath, buffer);
         return `/uploads/${filename}`;
@@ -151,7 +156,7 @@ app.get('/api/data', async (req, res) => {
                 floor: r.Floor || "",
                 isAudited: !!info,
                 auditNote: info?.note || "",
-                auditDate: info ? new Date(info.date).toLocaleString('th-TH') : "",
+                auditDate: info ? new Date(info.date).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }) : "",
                 auditor: info?.auditor || "",
                 auditImage: info?.image || ""
             };
@@ -232,8 +237,23 @@ app.post('/api/update', async (req, res) => {
 
         let imgUrl = oldRow.ImageURL;
         let changes = [];
-        if (oldRow.DeviceName !== obj.deviceName) changes.push(`ชื่อ: ${oldRow.DeviceName} -> ${obj.deviceName}`);
-        if (oldRow.Status !== obj.status) changes.push(`สถานะ: ${oldRow.Status} -> ${obj.status}`);
+
+        // Helper to check and push changes
+        const checkChange = (label, oldVal, newVal) => {
+            if ((oldVal || "") !== (newVal || "")) {
+                changes.push(`${label}: ${oldVal || "-"} -> ${newVal || "-"}`);
+            }
+        };
+
+        checkChange("ชื่อ", oldRow.DeviceName, obj.deviceName);
+        checkChange("รุ่น", oldRow.Model, obj.model);
+        checkChange("ยี่ห้อ", oldRow.Brand, obj.brand);
+        checkChange("สังกัด", oldRow.Division, obj.location);
+        checkChange("หน่วยงาน", oldRow.Department, obj.department);
+        checkChange("ผู้รับผิดชอบ", oldRow.User, obj.user);
+        checkChange("สถานะ", oldRow.Status, obj.status);
+        checkChange("ชั้น", oldRow.Floor, obj.floor);
+        checkChange("หมายเหตุ", oldRow.Remark, obj.remark);
 
         if (obj.image && obj.image.base64) {
             const ext = obj.image.mimeType.split('/')[1];
@@ -303,7 +323,7 @@ app.post('/api/delete', async (req, res) => {
 
 // 7. Submit Audit
 app.post('/api/audit', async (req, res) => {
-    const { d, user } = req.body;
+    const { obj: d, user } = req.body;
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
@@ -378,7 +398,7 @@ app.get('/api/audit-report', async (req, res) => {
                 currentStatus: r.Status,
                 floor: r.Floor || "",
                 isAudited: !!info,
-                auditDate: info ? new Date(info.date).toLocaleString('th-TH') : "-",
+                auditDate: info ? new Date(info.date).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }) : "-",
                 auditor: info?.auditor || "-",
                 auditLocation: info?.loc || "-",
                 auditNote: info?.note || "-",
@@ -415,7 +435,7 @@ app.get('/api/history', async (req, res) => {
         hRows.forEach(r => {
             historyList.push({
                 timestamp: new Date(r.Timestamp).getTime(),
-                dateStr: new Date(r.Timestamp).toLocaleString('th-TH'),
+                dateStr: new Date(r.Timestamp).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }),
                 user: r.User,
                 type: 'system',
                 action: r.Action,
@@ -426,7 +446,7 @@ app.get('/api/history', async (req, res) => {
         aRows.forEach(r => {
             historyList.push({
                 timestamp: new Date(r.AuditDate).getTime(),
-                dateStr: new Date(r.AuditDate).toLocaleString('th-TH'),
+                dateStr: new Date(r.AuditDate).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }),
                 user: r.Auditor,
                 type: 'audit',
                 action: `ตรวจนับ ปี ${r.FiscalYear}`,
@@ -448,7 +468,7 @@ app.get('/api/archive-data', async (req, res) => {
     try {
         const [rows] = await pool.query(`SELECT * FROM ${table}`);
         // Format dates if needed, or send as is
-        const data = rows.map(r => Object.values(r).map(val => (val instanceof Date) ? val.toLocaleString('th-TH') : val));
+        const data = rows.map(r => Object.values(r).map(val => (val instanceof Date) ? val.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }) : val));
         // Add headers as first row if client expects it (client seems to expect array of arrays)
         // Client code: const ws = XLSX.utils.aoa_to_sheet(res.data);
         // So we should return array of arrays, including headers?
@@ -540,7 +560,7 @@ app.post('/api/generate-pdf', async (req, res) => {
         <body>
             <div class="header">
                 <h2>รายงานการตรวจนับครุภัณฑ์ ประจำปีงบประมาณ ${year}</h2>
-                <p>วันที่พิมพ์: ${new Date().toLocaleString('th-TH')}</p>
+                <p>วันที่พิมพ์: ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</p>
             </div>
             <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: #4F46E5; color: white; border: none; border-radius: 5px; cursor: pointer; margin-bottom: 20px;">พิมพ์รายงาน (Print)</button>
             <table>
@@ -563,7 +583,7 @@ app.post('/api/generate-pdf', async (req, res) => {
                     <td>${r.AssetID}</td>
                     <td>${r.Result}</td>
                     <td>${r.Auditor}</td>
-                    <td>${new Date(r.AuditDate).toLocaleString('th-TH')}</td>
+                    <td>${new Date(r.AuditDate).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</td>
                     <td>${r.LocationAtAudit}</td>
                     <td>${r.Note || '-'}</td>
                 </tr>

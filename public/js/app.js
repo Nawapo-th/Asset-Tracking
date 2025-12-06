@@ -3,7 +3,8 @@ const $ = (id) => document.getElementById(id);
 const ICONS = {
     view: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`,
     edit: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>`,
-    delete: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>`
+    delete: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>`,
+    link: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>`
 };
 
 // API Helper Functions
@@ -921,21 +922,21 @@ function renderTable() {
     if (currentData.length === 0) { tbody.innerHTML = `<tr><td colspan="10" class="text-center py-10 text-slate-400">ไม่พบข้อมูล</td></tr>`; return; }
     pageData.forEach(row => {
         let statusClass = row.status.includes('ใช้งาน') ? 'badge-active' : row.status.includes('ส่งคืน') ? 'badge-returned' : row.status.includes('ชำรุด') ? 'badge-retired' : 'badge-stock';
-        const auditBadge = row.isAudited ? `<span class="badge-audit-done px-1.5 py-0.5 rounded text-[10px] font-bold mt-1 flex items-center justify-center w-fit">? นับแล้ว</span>` : '';
+        const auditBadge = row.isAudited ? `<span class="badge-audit-done px-1.5 py-0.5 rounded text-[10px] font-bold mt-1 flex items-center justify-center w-fit">✅ นับแล้ว</span>` : '';
         // เพิ่มเงื่อนไข && userRole === 'admin'
         const countBtn = (isLoggedIn && userRole === 'admin') ? (row.isAudited ? `<button class="p-1.5 bg-gray-100 text-gray-400 rounded-lg text-xs font-bold cursor-not-allowed" disabled>นับแล้ว</button>` : `<button class="audit-btn p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg text-xs font-bold" data-id="${row.assetID}">ตรวจนับ</button>`) : '';
         const showAdmin = (isLoggedIn && userRole === 'admin') ? '' : 'hidden';
         // Add border-b to every td to make divider line visible in border-separate
         tbody.innerHTML += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 group">
-                    <td class="px-4 py-3 text-center border-r border-b border-slate-200 dark:border-slate-700"><input type="checkbox" class="row-checkbox h-4 w-4 rounded text-indigo-600" value="${row.assetID}"></td>
-                    <td class="px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 font-mono text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">${row.assetID}</td>
-                    <td class="px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 font-medium text-slate-700 dark:text-slate-200 min-w-[150px]">${row.deviceName}</td>
-                    <td class="px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">${row.model}</td>
-                    <td class="px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">${row.division}</td>
-                    <td class="px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">${row.department}</td>
-                    <td class="px-4 py-3 text-center border-r border-b border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">${row.floor || "-"}</td>
-                    <td class="px-4 py-3 text-center border-r border-b border-slate-200 dark:border-slate-700"><div class="flex flex-col items-center"><span class="px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap ${statusClass}">${row.status}</span>${auditBadge}</div></td>
-                    <td class="px-4 py-3 text-center border-b border-slate-200 dark:border-slate-700"><div class="flex justify-center gap-2 opacity-80 group-hover:opacity-100">${countBtn}<button class="view-btn p-1.5 bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 hover:bg-teal-100 dark:hover:bg-teal-900/50 rounded-lg" data-id="${row.assetID}">${ICONS.view}</button><button class="edit-btn p-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-lg ${showAdmin}" data-id="${row.assetID}">${ICONS.edit}</button><button class="delete-btn p-1.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-lg ${showAdmin}" data-id="${row.assetID}">${ICONS.delete}</button></div></td>
+                    <td class="px-2 md:px-4 py-3 text-center border-r border-b border-slate-200 dark:border-slate-700"><input type="checkbox" class="row-checkbox h-4 w-4 rounded text-indigo-600" value="${row.assetID}"></td>
+                    <td class="px-2 md:px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 font-mono text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">${row.assetID}</td>
+                    <td class="px-2 md:px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 font-medium text-slate-700 dark:text-slate-200 min-w-[150px]">${row.deviceName}</td>
+                    <td class="px-2 md:px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">${row.model}</td>
+                    <td class="px-2 md:px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">${row.division}</td>
+                    <td class="px-2 md:px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">${row.department}</td>
+                    <td class="px-2 md:px-4 py-3 text-center border-r border-b border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">${row.floor || "-"}</td>
+                    <td class="px-2 md:px-4 py-3 text-center border-r border-b border-slate-200 dark:border-slate-700"><div class="flex flex-col items-center"><span class="px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap ${statusClass}">${row.status}</span>${auditBadge}</div></td>
+                    <td class="px-2 md:px-4 py-3 text-center border-b border-slate-200 dark:border-slate-700"><div class="flex justify-center gap-2 opacity-80 group-hover:opacity-100">${countBtn}<button class="view-btn p-1.5 bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 hover:bg-teal-100 dark:hover:bg-teal-900/50 rounded-lg" data-id="${row.assetID}">${ICONS.view}</button><button class="edit-btn p-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-lg ${showAdmin}" data-id="${row.assetID}">${ICONS.edit}</button><button class="delete-btn p-1.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-lg ${showAdmin}" data-id="${row.assetID}">${ICONS.delete}</button></div></td>
                 </tr>`;
     });
 }
@@ -1070,7 +1071,7 @@ function renderTimelineItems(data) {
     data.forEach((item, index) => {
         const isLast = index === data.length - 1;
         const iconBg = item.type === 'audit' ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400';
-        const icon = item.type === 'audit' ? '?' : '?';
+        const icon = item.type === 'audit' ? '📋' : '⚙️';
 
         // --- Formatted Logic ---
         let detailText = item.details || "";
@@ -1087,9 +1088,12 @@ function renderTimelineItems(data) {
             if (parts.length >= 1) {
                 detailText = `${parts[0].trim()} | หน่วยงาน: ${realDept}${floorStr}`;
             }
+        } else if (item.action === 'EDIT' || item.action === 'UPDATE') {
+            // Format comma-separated changes as a vertical list
+            detailText = detailText.split(', ').map(change => `<span class="block">• ${change}</span>`).join('');
         }
 
-        html += `<div class="relative pl-8 pb-6 ${isLast ? '' : 'border-l-2 border-slate-200 dark:border-slate-700'} ml-3"><div class="absolute -left-[9px] top-0 w-5 h-5 rounded-full ${iconBg} flex items-center justify-center ring-4 ring-white dark:ring-slate-800 text-[10px] font-bold">${icon}</div><div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-1"><span class="text-sm font-bold text-slate-800 dark:text-white">${item.action || item.title}</span><span class="text-xs font-mono text-slate-400 bg-slate-50 dark:bg-slate-700 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-600 mt-1 sm:mt-0">${item.dateStr}</span></div><p class="text-xs text-slate-600 dark:text-slate-400 mb-1">${detailText}</p><div class="flex items-center gap-1 text-[10px] text-slate-400">?? ${item.user}</div></div>`;
+        html += `<div class="relative pl-8 pb-6 ${isLast ? '' : 'border-l-2 border-slate-200 dark:border-slate-700'} ml-3"><div class="absolute -left-[9px] top-0 w-5 h-5 rounded-full ${iconBg} flex items-center justify-center ring-4 ring-white dark:ring-slate-800 text-[10px] font-bold">${icon}</div><div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-1"><span class="text-sm font-bold text-slate-800 dark:text-white">${item.action || item.title}</span><span class="text-xs font-mono text-slate-400 bg-slate-50 dark:bg-slate-700 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-600 mt-1 sm:mt-0">${item.dateStr}</span></div><p class="text-xs text-slate-600 dark:text-slate-400 mb-1">${detailText}</p><div class="flex items-center gap-1 text-[10px] text-slate-400">👤 ${item.user}</div></div>`;
     });
     $('timeline-list').innerHTML = html;
 }
@@ -1123,7 +1127,7 @@ function showForm(mode, id, isScanned = false) {
                 // [ปรับใหม่ข้อ 3] เพิ่มคำอธิบายเหนือรูปภาพ Audit
                 const imgDisplay = (a.auditImage && a.auditImage !== "-") ?
                     `<div class="mt-3 border-t border-emerald-100 dark:border-emerald-800 pt-2">
-                              <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">?? รูป ณ จุด ติดตั้ง</p>
+                              <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">📷 รูป ณ จุด ติดตั้ง</p>
                               <div class="p-2 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded text-center">
                                   <img src="${a.auditImage}" class="max-h-32 w-auto mx-auto rounded shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onclick="window.open(this.src, '_blank')" title="คลิกเพื่อดูรูปใหญ่">
                               </div>
@@ -1295,23 +1299,23 @@ function renderAuditTable() {
     $('auditPageIndicator').textContent = `${auditCurrentPage}/${pages}`;
 
     auditFilteredData.slice((auditCurrentPage - 1) * auditItemsPerPage, auditCurrentPage * auditItemsPerPage).forEach(r => {
-        const badge = r.isAudited ? '<span class="badge-audit-done px-2 py-1 rounded text-xs font-bold">? นับแล้ว</span>' : '<span class="badge-audit-pending px-2 py-1 rounded text-xs">รอนับ</span>';
-        const imgLink = (r.auditImage && r.auditImage !== "-") ? `<a href="${r.auditImage}" target="_blank" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300">${ICONS.link}</a>` : `<span class="text-gray-300 dark:text-gray-600">-</span>`;
+        const badge = r.isAudited ? '<span class="badge-audit-done px-2 py-1 rounded text-xs font-bold">✅ นับแล้ว</span>' : '<span class="badge-audit-pending px-2 py-1 rounded text-xs">รอนับ</span>';
+        const imgLink = (r.auditImage && r.auditImage !== "-") ? `<div class="flex justify-center"><img src="${r.auditImage}" class="h-10 w-10 object-cover rounded-md cursor-pointer hover:scale-150 transition-transform duration-200 border border-slate-200 dark:border-slate-600 shadow-sm" onclick="window.open('${r.auditImage}', '_blank')" title="คลิกเพื่อดูรูปใหญ่"></div>` : `<span class="text-gray-300 dark:text-gray-600">-</span>`;
         const editBtn = (r.isAudited && isLoggedIn) ? `<button class="audit-edit-btn p-1 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50 rounded-md shadow-sm" data-id="${r.assetID}">${ICONS.edit}</button>` : '';
         const tr = document.createElement('tr'); tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors";
         const displayLocation = r.auditLocation ? r.auditLocation.replace(/\s*\(.*?\)$/, '') : "";
 
         tr.innerHTML = `
-                <td class="px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 font-mono text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">${r.assetID}</td>
-                <td class="px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 whitespace-nowrap">${r.deviceName}</td>
-                <td class="px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 whitespace-nowrap">${displayLocation}</td>
-                <td class="px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">${r.department || "-"}</td>
-                <td class="px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-center text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">${r.floor || "-"}</td>
-                <td class="px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700">${badge}</td>
-                <td class="px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">${r.auditDate}<br>${r.auditor}</td>
-                <td class="px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 max-w-[150px] truncate" title="${r.auditNote}">${r.auditNote}</td>
-                <td class="px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-center">${imgLink}</td>
-                <td class="px-6 py-3 text-center border-b border-slate-200 dark:border-slate-700">${editBtn}</td>
+                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 font-mono text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">${r.assetID}</td>
+                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 whitespace-nowrap">${r.deviceName}</td>
+                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 whitespace-nowrap">${displayLocation}</td>
+                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">${r.department || "-"}</td>
+                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-center text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">${r.floor || "-"}</td>
+                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700">${badge}</td>
+                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">${r.auditDate}<br>${r.auditor}</td>
+                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 max-w-[150px] truncate" title="${r.auditNote}">${r.auditNote}</td>
+                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-center">${imgLink}</td>
+                <td class="px-2 md:px-6 py-3 text-center border-b border-slate-200 dark:border-slate-700">${editBtn}</td>
             `;
         tbody.appendChild(tr);
     });
@@ -1458,11 +1462,11 @@ function startScanner() {
         let msg = "เกิดข้อผิดพลาดในการเปิดกล้อง";
 
         if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-            msg = "?? คุณไม่อนุญาตให้เข้าถึงกล้อง\n\nวิธีแก้:\n1. กดที่ไอคอนแม่กุญแจ ?? (บน) หรือ 'Aa' (ล่าง)\n2. เลือก 'การตั้งค่าเว็บไซต์' (Website Settings)\n3. อนุญาตให้ใช้ 'กล้อง' (Camera)";
+            msg = "🚫 คุณไม่อนุญาตให้เข้าถึงกล้อง\n\nวิธีแก้:\n1. กดที่ไอคอนแม่กุญแจ 🔒 (บน) หรือ 'Aa' (ล่าง)\n2. เลือก 'การตั้งค่าเว็บไซต์' (Website Settings)\n3. อนุญาตให้ใช้ 'กล้อง' (Camera)";
         } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
-            msg = "?? ไม่พบกล้องในอุปกรณ์นี้";
+            msg = "📷 ไม่พบกล้องในอุปกรณ์นี้";
         } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
-            msg = "?? กล้องกำลังถูกใช้งานโดยแอปอื่น หรือระบบล็อกอยู่";
+            msg = "⚠️ กล้องกำลังถูกใช้งานโดยแอปอื่น หรือระบบล็อกอยู่";
         }
 
         alert(msg);
@@ -1488,33 +1492,48 @@ function onScanSuccess(decodedText, decodedResult) {
     // 1. หยุดสแกนและปิด Modal
     stopScanner();
 
+    console.log(`Scan result: ${decodedText}`);
+
     // 2. ตรวจสอบว่าผลลัพธ์เป็น URL ที่มีค่า id หรือไม่
     let assetId = decodedText;
     try {
-        // กรณีสแกนแล้วได้ URL เช่น .../exec?id=1234
-        if (decodedText.includes("id=")) {
-            const url = new URL(decodedText);
+        if (decodedText.includes("id=") || decodedText.includes("?")) {
+            // รองรับทั้ง ?id=... และ URL เต็ม
+            const urlStr = decodedText.startsWith("http") ? decodedText : `http://dummy.com/${decodedText}`;
+            const url = new URL(urlStr);
             const idParam = url.searchParams.get("id");
             if (idParam) assetId = idParam;
         }
     } catch (e) {
-        // ถ้า parse URL ไม่ได้ ให้ใช้ text ดิบๆ
-        console.log("Use raw text");
+        console.log("Parse URL failed, using raw text", e);
     }
 
-    // 3. สลับไปหน้า List และค้นหา
-    switchView('list');
-    const searchBox = document.getElementById('searchBox');
-    searchBox.value = assetId;
-    applyAllFilters(); // สั่งค้นหาทันที
+    // 3. ค้นหาในฐานข้อมูล local (allData) โดยตรง เพื่อความแม่นยำ
+    const exactMatch = allData.find(d => String(d.assetID) === String(assetId));
 
-    // 4. (Optional) ถ้าเจอรายการเดียวที่ตรงกันเป๊ะ ให้เปิดหน้ารายละเอียดทันที
-    setTimeout(() => {
-        const exactMatch = currentData.find(d => String(d.assetID) === String(assetId));
-        if (exactMatch) {
-            showForm('view', exactMatch.assetID, true); // true = แสดง badge ว่ามาจากการสแกน
+    if (exactMatch) {
+        // เจอ! เปิดหน้ารายละเอียดเลย
+        showForm('view', exactMatch.assetID, true);
+
+        // (Optional) สลับไปหน้า List และกรองให้ด้วย เพื่อให้ Background เป็นรายการนั้น
+        switchView('list');
+        const searchBox = document.getElementById('searchBox');
+        if (searchBox) {
+            searchBox.value = assetId;
+            if (typeof applyAllFilters === 'function') applyAllFilters();
         }
-    }, 500); // รอ render ตารางแป๊บนึง
+    } else {
+        // ไม่เจอ
+        showAlert("ไม่พบข้อมูล", `ไม่พบครุภัณฑ์รหัส: ${assetId} ในระบบ`);
+
+        // สลับไปหน้า List ให้ดู
+        switchView('list');
+        const searchBox = document.getElementById('searchBox');
+        if (searchBox) {
+            searchBox.value = assetId;
+            if (typeof applyAllFilters === 'function') applyAllFilters();
+        }
+    }
 }
 // --- [เพิ่มใหม่] ปุ่มค้นหารูป Google ---
 const btnGoogleSearch = document.getElementById('btn-google-search');
@@ -1571,6 +1590,10 @@ function handlePasteImage(items) {
 const btnPaste = document.getElementById('btn-paste-image');
 if (btnPaste) {
     btnPaste.addEventListener('click', async () => {
+        // [แก้ไขใหม่] เช็คก่อนว่า Browser อนุญาตให้เข้าถึง Clipboard หรือไม่
+        if (!navigator.clipboard || !navigator.clipboard.read) {
+            return showAlert("ข้อจำกัด Browser", "ฟังก์ชันปุ่มวางรูปใช้งานได้เฉพาะบน HTTPS หรือ Localhost เท่านั้น\n\n👉 กรุณากดปุ่ม Ctrl+V (ที่คีย์บอร์ด) เพื่อวางรูปแทนครับ");
+        }
         try {
             // ขออ่าน Clipboard (ต้องกดอนุญาตในบาง Browser)
             const clipboardItems = await navigator.clipboard.read();
@@ -1719,82 +1742,4 @@ function populateOrgDropdowns() {
         }
     });
 }
-
-// --- QR Code Scanner Logic ---
-let html5QrcodeScanner = null;
-
-function startScanner() {
-    const modal = $('scanner-modal');
-    modal.classList.remove('hidden');
-
-    if (html5QrcodeScanner) {
-        // Scanner already running
-        return;
-    }
-
-    html5QrcodeScanner = new Html5Qrcode("reader");
-    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-
-    html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess)
-        .catch(err => {
-            console.error("Error starting scanner", err);
-            showAlert("Error", "ไม่สามารถเปิดกล้องได้: " + err);
-            modal.classList.add('hidden');
-        });
-}
-
-function onScanSuccess(decodedText, decodedResult) {
-    // Handle the scanned code
-    console.log(`Code matched = ${decodedText}`, decodedResult);
-
-    // Stop scanning
-    stopScanner();
-
-    // Check if it's a URL or just ID
-    let assetID = decodedText;
-    if (decodedText.includes('id=')) {
-        const urlParams = new URLSearchParams(decodedText.split('?')[1]);
-        assetID = urlParams.get('id');
-    }
-
-    // Search for the asset
-    if (assetID) {
-        $('searchBox').value = assetID;
-        const bigSearch = $('bigSearchBox');
-        if (bigSearch) bigSearch.value = assetID;
-
-        switchView('list');
-        applyAllFilters();
-
-        // Optional: Auto-open if found
-        const found = allData.find(item => String(item.assetID) === String(assetID));
-        if (found) {
-            showForm('view', found.assetID);
-        } else {
-            showAlert("ไม่พบข้อมูล", `ไม่พบครุภัณฑ์รหัส: ${assetID}`);
-        }
-    }
-}
-
-function stopScanner() {
-    if (html5QrcodeScanner) {
-        html5QrcodeScanner.stop().then(() => {
-            html5QrcodeScanner.clear();
-            html5QrcodeScanner = null;
-            $('scanner-modal').classList.add('hidden');
-        }).catch(err => {
-            console.error("Failed to stop scanner", err);
-        });
-    } else {
-        $('scanner-modal').classList.add('hidden');
-    }
-}
-
-// Event Listener for Close Button
-document.addEventListener('DOMContentLoaded', () => {
-    const closeBtn = $('closeScannerBtn');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', stopScanner);
-    }
-});
 
