@@ -1440,101 +1440,7 @@ function applyAllFilters() {
 document.getElementById('searchBox').addEventListener('input', applyAllFilters);
 // ... (โค้ดเดิม) ...
 
-// [เพิ่มใหม่] ส่วนจัดการ Scanner
-let html5QrCode;
 
-function startScanner() {
-    const modal = document.getElementById('scanner-modal');
-    modal.classList.remove('hidden');
-
-    // ถ้าเคยสร้าง instance แล้ว ให้ใช้ตัวเดิม
-    if (!html5QrCode) {
-        html5QrCode = new Html5Qrcode("reader");
-    }
-
-    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-
-    // เริ่มกล้อง (ใช้กล้องหลังเป็นค่าเริ่มต้น)
-    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, (error) => {
-        // scanning error, ignore
-    }).catch(err => {
-        console.error(err);
-        let msg = "เกิดข้อผิดพลาดในการเปิดกล้อง";
-
-        if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-            msg = "🚫 คุณไม่อนุญาตให้เข้าถึงกล้อง\n\nวิธีแก้:\n1. กดที่ไอคอนแม่กุญแจ 🔒 (บน) หรือ 'Aa' (ล่าง)\n2. เลือก 'การตั้งค่าเว็บไซต์' (Website Settings)\n3. อนุญาตให้ใช้ 'กล้อง' (Camera)";
-        } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
-            msg = "📷 ไม่พบกล้องในอุปกรณ์นี้";
-        } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
-            msg = "⚠️ กล้องกำลังถูกใช้งานโดยแอปอื่น หรือระบบล็อกอยู่";
-        }
-
-        alert(msg);
-        modal.classList.add('hidden');
-    });
-}
-
-function stopScanner() {
-    const modal = document.getElementById('scanner-modal');
-    if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-            modal.classList.add('hidden');
-        }).catch(err => {
-            console.log("Stop failed: ", err);
-            modal.classList.add('hidden');
-        });
-    } else {
-        modal.classList.add('hidden');
-    }
-}
-
-function onScanSuccess(decodedText, decodedResult) {
-    // 1. หยุดสแกนและปิด Modal
-    stopScanner();
-
-    console.log(`Scan result: ${decodedText}`);
-
-    // 2. ตรวจสอบว่าผลลัพธ์เป็น URL ที่มีค่า id หรือไม่
-    let assetId = decodedText;
-    try {
-        if (decodedText.includes("id=") || decodedText.includes("?")) {
-            // รองรับทั้ง ?id=... และ URL เต็ม
-            const urlStr = decodedText.startsWith("http") ? decodedText : `http://dummy.com/${decodedText}`;
-            const url = new URL(urlStr);
-            const idParam = url.searchParams.get("id");
-            if (idParam) assetId = idParam;
-        }
-    } catch (e) {
-        console.log("Parse URL failed, using raw text", e);
-    }
-
-    // 3. ค้นหาในฐานข้อมูล local (allData) โดยตรง เพื่อความแม่นยำ
-    const exactMatch = allData.find(d => String(d.assetID) === String(assetId));
-
-    if (exactMatch) {
-        // เจอ! เปิดหน้ารายละเอียดเลย
-        showForm('view', exactMatch.assetID, true);
-
-        // (Optional) สลับไปหน้า List และกรองให้ด้วย เพื่อให้ Background เป็นรายการนั้น
-        switchView('list');
-        const searchBox = document.getElementById('searchBox');
-        if (searchBox) {
-            searchBox.value = assetId;
-            if (typeof applyAllFilters === 'function') applyAllFilters();
-        }
-    } else {
-        // ไม่เจอ
-        showAlert("ไม่พบข้อมูล", `ไม่พบครุภัณฑ์รหัส: ${assetId} ในระบบ`);
-
-        // สลับไปหน้า List ให้ดู
-        switchView('list');
-        const searchBox = document.getElementById('searchBox');
-        if (searchBox) {
-            searchBox.value = assetId;
-            if (typeof applyAllFilters === 'function') applyAllFilters();
-        }
-    }
-}
 // --- [เพิ่มใหม่] ปุ่มค้นหารูป Google ---
 const btnGoogleSearch = document.getElementById('btn-google-search');
 if (btnGoogleSearch) {
@@ -1741,5 +1647,107 @@ function populateOrgDropdowns() {
             sel.appendChild(opt);
         }
     });
+}
+
+// [เพิ่มใหม่] ส่วนจัดการ Scanner
+let html5QrCode;
+
+function startScanner() {
+    // Check for HTTPS or Localhost
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("เบราว์เซอร์นี้ไม่รองรับการเข้าถึงกล้อง หรือไม่ได้เชื่อมต่อผ่าน HTTPS");
+        return;
+    }
+
+    const modal = document.getElementById('scanner-modal');
+    if (modal) modal.classList.remove('hidden');
+
+    // ถ้าเคยสร้าง instance แล้ว ให้ใช้ตัวเดิม
+    if (!html5QrCode) {
+        // ตรวจสอบว่ามี element reader หรือไม่
+        if (!document.getElementById("reader")) {
+            console.error("Scanner element 'reader' not found");
+            return;
+        }
+        html5QrCode = new Html5Qrcode("reader");
+    }
+
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+    // เริ่มกล้อง (ใช้กล้องหลังเป็นค่าเริ่มต้น)
+    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, (error) => {
+        // scanning error, ignore
+    }).catch(err => {
+        console.error(err);
+        let msg = "เกิดข้อผิดพลาดในการเปิดกล้อง";
+
+        if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+            msg = "🚫 คุณไม่อนุญาตให้เข้าถึงกล้อง\n\nวิธีแก้:\n1. กดที่ไอคอนแม่กุญแจ 🔒 (บน) หรือ 'Aa' (ล่าง)\n2. เลือก 'การตั้งค่าเว็บไซต์' (Website Settings)\n3. อนุญาตให้ใช้ 'กล้อง' (Camera)";
+        } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+            msg = "📷 ไม่พบกล้องในอุปกรณ์นี้";
+        } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+            msg = "⚠️ กล้องกำลังถูกใช้งานโดยแอปอื่น หรือระบบล็อกอยู่";
+        } else if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+            msg = "⚠️ การใช้งานกล้องต้องทำผ่าน HTTPS เท่านั้น";
+        }
+
+        alert(msg);
+        if (modal) modal.classList.add('hidden');
+    });
+}
+
+function stopScanner() {
+    const modal = document.getElementById('scanner-modal');
+    if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+            if (modal) modal.classList.add('hidden');
+        }).catch(err => {
+            console.log("Stop failed: ", err);
+            // Even if stop fails, hide modal and try to clear
+            if (modal) modal.classList.add('hidden');
+        });
+    } else {
+        if (modal) modal.classList.add('hidden');
+    }
+}
+
+function onScanSuccess(decodedText, decodedResult) {
+    // 1. หยุดสแกนและปิด Modal
+    stopScanner();
+
+    console.log(`Scan result: ${decodedText}`);
+
+    // 2. ตรวจสอบว่าผลลัพธ์เป็น URL ที่มีค่า id หรือไม่
+    let assetId = decodedText;
+    try {
+        if (decodedText.includes("id=") || decodedText.includes("?")) {
+            // รองรับทั้ง ?id=... และ URL เต็ม
+            const urlStr = decodedText.startsWith("http") ? decodedText : `http://dummy.com/${decodedText}`;
+            const url = new URL(urlStr);
+            const idParam = url.searchParams.get("id");
+            if (idParam) assetId = idParam;
+        }
+    } catch (e) {
+        console.log("Parse URL failed, using raw text", e);
+    }
+
+    // 3. ค้นหาในฐานข้อมูล local (allData) โดยตรง เพื่อความแม่นยำ
+    const exactMatch = allData.find(d => String(d.assetID) === String(assetId));
+
+    if (exactMatch) {
+        // เจอ! เปิดหน้ารายละเอียดเลย
+        showForm('view', exactMatch.assetID, true);
+
+        // (Optional) สลับไปหน้า List และกรองให้ด้วย เพื่อให้ Background เป็นรายการนั้น
+        switchView('list');
+        const searchBox = document.getElementById('searchBox');
+        if (searchBox) {
+            searchBox.value = assetId;
+            applyAllFilters();
+        }
+    } else {
+        // ไม่เจอ
+        showAlert("ไม่พบข้อมูล", `ไม่พบครุภัณฑ์หมายเลข: ${assetId} ในระบบ`);
+    }
 }
 
