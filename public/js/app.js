@@ -1226,7 +1226,9 @@ function renderTimelineItems(data) {
             <div class="absolute -left-[9px] top-0 w-5 h-5 rounded-full ${iconBg} flex items-center justify-center ring-4 ring-white dark:ring-slate-800 text-[10px] font-bold">${icon}</div>
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-1">
                 <span class="text-sm font-bold text-slate-800 dark:text-white">${item.action || item.title}</span>
-                <span class="text-xs font-mono text-slate-400 bg-slate-50 dark:bg-slate-700 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-600 mt-1 sm:mt-0">${item.dateStr}</span>
+                <span class="text-xs font-mono text-slate-400 bg-slate-50 dark:bg-slate-700 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-600 mt-1 sm:mt-0">
+                    ${new Date(item.timestamp).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}
+                </span>
             </div>
             <div class="text-xs text-slate-600 dark:text-slate-400 mb-1">${detailText}</div>
             <div class="flex items-center gap-1 text-[10px] text-slate-400">👤 ${item.user}</div>

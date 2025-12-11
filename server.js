@@ -31,7 +31,8 @@ const pool = mysql.createPool({
     database: process.env.DB_NAME || 'asset_db',
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    timezone: 'Z'
 });
 
 // --- Auto-Migration: Ensure 'Floor' column exists in settings ---
@@ -175,7 +176,7 @@ app.get('/api/data', async (req, res) => {
                 floor: r.Floor || "",
                 isAudited: !!info,
                 auditNote: info?.note || "",
-                auditDate: info ? new Date(info.date).toLocaleString('th-TH') : "",
+                auditDate: info ? new Date(info.date).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }) : "",
                 auditor: info?.auditor || "",
                 auditImage: info?.image || ""
             };
@@ -449,7 +450,7 @@ app.get('/api/history', async (req, res) => {
         hRows.forEach(r => {
             historyList.push({
                 timestamp: new Date(r.Timestamp).getTime(),
-                dateStr: new Date(r.Timestamp).toLocaleString('th-TH'),
+                dateStr: new Date(r.Timestamp).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }),
                 user: r.User,
                 type: 'system',
                 action: r.Action,
@@ -460,7 +461,7 @@ app.get('/api/history', async (req, res) => {
         aRows.forEach(r => {
             historyList.push({
                 timestamp: new Date(r.AuditDate).getTime(),
-                dateStr: new Date(r.AuditDate).toLocaleString('th-TH'),
+                dateStr: new Date(r.AuditDate).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }),
                 user: r.Auditor,
                 type: 'audit',
                 action: `ตรวจนับ ปี ${r.FiscalYear}`,
@@ -482,7 +483,7 @@ app.get('/api/archive-data', async (req, res) => {
     try {
         const [rows] = await pool.query(`SELECT * FROM ${table}`);
         // Format dates if needed, or send as is
-        const data = rows.map(r => Object.values(r).map(val => (val instanceof Date) ? val.toLocaleString('th-TH') : val));
+        const data = rows.map(r => Object.values(r).map(val => (val instanceof Date) ? val.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }) : val));
         // Add headers as first row if client expects it (client seems to expect array of arrays)
         // Client code: const ws = XLSX.utils.aoa_to_sheet(res.data);
         // So we should return array of arrays, including headers?
@@ -606,7 +607,7 @@ app.post('/api/generate-pdf', async (req, res) => {
         <body>
             <div class="header">
                 <h2>รายงานการตรวจนับครุภัณฑ์ ประจำปีงบประมาณ ${year}</h2>
-                <p>วันที่พิมพ์: ${new Date().toLocaleString('th-TH')}</p>
+                <p>วันที่พิมพ์: ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</p>
             </div>
             <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: #4F46E5; color: white; border: none; border-radius: 5px; cursor: pointer; margin-bottom: 20px;">พิมพ์รายงาน (Print)</button>
             <table>
@@ -629,7 +630,7 @@ app.post('/api/generate-pdf', async (req, res) => {
                     <td>${r.AssetID}</td>
                     <td>${r.Result}</td>
                     <td>${r.Auditor}</td>
-                    <td>${new Date(r.AuditDate).toLocaleString('th-TH')}</td>
+                    <td>${new Date(r.AuditDate).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</td>
                     <td>${r.LocationAtAudit}</td>
                     <td>${r.Note || '-'}</td>
                 </tr>
@@ -665,7 +666,7 @@ app.get('/api/backup', async (req, res) => {
         for (const table of tables) {
             const [rows] = await pool.query(`SELECT * FROM ${table}`);
             // Format dates
-            backupData[table] = rows.map(r => Object.values(r).map(val => (val instanceof Date) ? val.toLocaleString('th-TH') : val));
+            backupData[table] = rows.map(r => Object.values(r).map(val => (val instanceof Date) ? val.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }) : val));
             // Add headers
             if (rows.length > 0) {
                 backupData[table].unshift(Object.keys(rows[0]));
