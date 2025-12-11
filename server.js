@@ -72,7 +72,7 @@ function generateQRCodeUrl(id) {
     // Using a public API for QR codes similar to original script, or could use 'qrcode' lib locally
     // Original: https://quickchart.io/qr?text=...
     // We'll keep the logic but point to our local server URL if needed, or just the ID
-    const baseUrl = 'https://10.67.3.116:3443'; // เปลี่ยนเป็น HTTPS และ port 3443
+    const baseUrl = 'https://10.67.3.111:3443'; // เปลี่ยนเป็น HTTPS และ port 3443
     return `https://quickchart.io/qr?text=${encodeURIComponent(baseUrl + '?id=' + encodeURIComponent(id))}&margin=0&size=500&ecLevel=L`;
 }
 
@@ -796,7 +796,7 @@ app.post('/api/delete-all', async (req, res) => {
 // Start HTTP Server
 http.createServer(app).listen(port, () => {
     console.log(`🌐 HTTP Server running at http://localhost:${port}`);
-    console.log(`   Network: http://10.67.3.116:${port}`);
+    console.log(`   Network: http://10.67.3.111:${port}`);
 });
 
 // Start HTTPS Server (if certificates exist)
@@ -811,7 +811,7 @@ if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
 
     https.createServer(httpsOptions, app).listen(httpsPort, () => {
         console.log(`🔒 HTTPS Server running at https://localhost:${httpsPort}`);
-        console.log(`   Network: https://10.67.3.116:${httpsPort}`);
+        console.log(`   Network: https://10.67.3.111:${httpsPort}`);
         console.log(`\n📱 For mobile camera access, use HTTPS URL!`);
         console.log(`   Note: You may need to accept the self-signed certificate warning.\n`);
     });
