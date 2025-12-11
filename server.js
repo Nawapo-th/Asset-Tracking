@@ -679,18 +679,7 @@ app.get('/api/backup', async (req, res) => {
     }
 });
 
-// 16. Clear Cache (Dummy)
-app.post('/api/clear-cache', async (req, res) => {
-    const { user } = req.body;
-    try {
-        // In a real app, we might clear Redis or temp files here.
-        // For now, just log it.
-        await logAction(user, "CLEAR_CACHE", "System", "Cleared system cache (Dummy)");
-        res.json({ status: "success", message: "System cache cleared." });
-    } catch (err) {
-        res.status(500).json({ status: "error", message: err.message });
-    }
-});
+
 
 // 17. Import Data
 const upload = multer({ dest: 'uploads/temp/' });
