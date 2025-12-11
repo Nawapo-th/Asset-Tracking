@@ -5,10 +5,10 @@ services:
     build: .
     ports:
       - "3000:3000"
-      - "3443:3443"
-    volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
+    # Comment out volumes for production - use files from container instead
+    # volumes:
+    #   - .:/usr/src/app
+    #   - /usr/src/app/node_modules
     environment:
       - DB_HOST=db
       - DB_USER=root

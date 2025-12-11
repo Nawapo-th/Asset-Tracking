@@ -6,12 +6,9 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
-const https = require('https');
-const http = require('http');
 
 const app = express();
 const port = 3000;
-const httpsPort = 3443;
 
 // Middleware
 app.use(cors());
@@ -72,7 +69,7 @@ function generateQRCodeUrl(id) {
     // Using a public API for QR codes similar to original script, or could use 'qrcode' lib locally
     // Original: https://quickchart.io/qr?text=...
     // We'll keep the logic but point to our local server URL if needed, or just the ID
-    const baseUrl = 'https://10.67.3.111:3443'; // เปลี่ยนเป็น HTTPS และ port 3443
+    const baseUrl = 'http://10.67.3.111:3000'; // เปลี่ยนเป็น IP Server ของคุณ
     return `https://quickchart.io/qr?text=${encodeURIComponent(baseUrl + '?id=' + encodeURIComponent(id))}&margin=0&size=500&ecLevel=L`;
 }
 
@@ -480,6 +477,17 @@ app.get('/api/archive-data', async (req, res) => {
     }
 });
 
+// 19. Get Available Audit Years
+app.get('/api/audit-years', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT DISTINCT FiscalYear FROM audits ORDER BY FiscalYear DESC');
+        const years = rows.map(r => r.FiscalYear);
+        res.json({ status: "success", data: years });
+    } catch (err) {
+        res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
 // 12. Batch Delete
 app.post('/api/batch-delete', async (req, res) => {
     const { ids, user } = req.body;
@@ -771,17 +779,17 @@ app.post('/api/import', upload.single('file'), async (req, res) => {
 
 // 18. Delete All Data
 app.post('/api/delete-all', async (req, res) => {
-    const { user } = req.body;
+    const { user, reason } = req.body;
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
 
         // Delete all data (Audits first due to FK, though Cascade might handle it, explicit is safer)
-        await connection.query('DELETE FROM audits');
-        await connection.query('DELETE FROM inventory');
+        const [auditRes] = await connection.query('DELETE FROM audits');
+        const [invRes] = await connection.query('DELETE FROM inventory');
 
-        // Optional: clear history if truly resetting, but for now we just log the action
-        await logAction(user, "DELETE_ALL", "System", "ลบข้อมูลทั้งหมดในระบบ");
+        // Log the action with counts and reason
+        await logAction(user, "DELETE_ALL", "System", `ลบข้อมูลทั้งหมดในระบบ (ครุภัณฑ์: ${invRes.affectedRows}, ตรวจนับ: ${auditRes.affectedRows} รายการ) | เหตุผล: ${reason || '-'}`);
 
         await connection.commit();
         res.json({ status: "success", message: "ลบข้อมูลทั้งหมดเรียบร้อยแล้ว" });
@@ -793,29 +801,7 @@ app.post('/api/delete-all', async (req, res) => {
     }
 });
 
-// Start HTTP Server
-http.createServer(app).listen(port, () => {
-    console.log(`🌐 HTTP Server running at http://localhost:${port}`);
-    console.log(`   Network: http://10.67.3.111:${port}`);
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+    console.log(`To access from other devices, use IP: http://10.67.3.111:${port}`);
 });
-
-// Start HTTPS Server (if certificates exist)
-const certPath = path.join(__dirname, 'cert.pem');
-const keyPath = path.join(__dirname, 'key.pem');
-
-if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
-    const httpsOptions = {
-        key: fs.readFileSync(keyPath),
-        cert: fs.readFileSync(certPath)
-    };
-
-    https.createServer(httpsOptions, app).listen(httpsPort, () => {
-        console.log(`🔒 HTTPS Server running at https://localhost:${httpsPort}`);
-        console.log(`   Network: https://10.67.3.111:${httpsPort}`);
-        console.log(`\n📱 For mobile camera access, use HTTPS URL!`);
-        console.log(`   Note: You may need to accept the self-signed certificate warning.\n`);
-    });
-} else {
-    console.warn('⚠️  HTTPS certificates not found. HTTPS server not started.');
-    console.warn('   Camera access may not work on mobile devices over HTTP.');
-}

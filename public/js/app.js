@@ -124,9 +124,42 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchOrganizationData().then(() => {
         populateOrgDropdowns();
     });
-    const currentYear = new Date().getFullYear() + 543;
-    for (let y = currentYear + 1; y >= currentYear - 2; y--) { const opt = document.createElement('option'); opt.value = y; opt.textContent = `ปีงบ ${y}`; $('auditYearSelect').appendChild(opt); }
-    $('auditYearSelect').value = currentYear;
+    fetchOrganizationData().then(() => {
+        populateOrgDropdowns();
+    });
+
+    // Populate Audit Years
+    const populateAuditYears = async () => {
+        const sel = $('auditYearSelect');
+        const currentYear = new Date().getFullYear() + 543;
+        const defaultYears = new Set();
+
+        // Add default range
+        for (let y = currentYear + 1; y >= currentYear - 2; y--) {
+            defaultYears.add(y);
+        }
+
+        try {
+            const res = await apiGet('/api/audit-years');
+            if (res.status === 'success') {
+                res.data.forEach(y => defaultYears.add(parseInt(y)));
+            }
+        } catch (e) { console.error("Failed to fetch years", e); }
+
+        // Sort descending
+        const sortedYears = Array.from(defaultYears).sort((a, b) => b - a);
+
+        sel.innerHTML = '';
+        sortedYears.forEach(y => {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = `ปีงบ ${y}`;
+            sel.appendChild(opt);
+        });
+
+        sel.value = currentYear;
+    };
+    populateAuditYears();
 
     // Setup activity listeners
     ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(evt => {
@@ -150,13 +183,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             showProcessModal("กำลังส่งออก Excel", "ระบบกำลังสร้างไฟล์รายงานการนับ...");
 
-            // ใช้ setTimeout เพื่อให้ UI render Modal ก่อนเริ่มงานหนัก
             setTimeout(() => {
                 try {
+                    const year = $('auditYearSelect').value;
                     const ws = XLSX.utils.json_to_sheet(auditDataCache);
                     const wb = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(wb, ws, "Audit_Data");
-                    XLSX.writeFile(wb, `Audit_Report_${$('auditYearSelect').value}.xlsx`);
+                    XLSX.utils.book_append_sheet(wb, ws, `Audit_${year}`);
+                    XLSX.writeFile(wb, `รายงานการตรวจนับ_${year}.xlsx`);
                     hideProcessModal();
                 } catch (e) {
                     hideProcessModal();
@@ -200,10 +233,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     $('exportAuditBtnDirect').addEventListener('click', () => {
         if (auditDataCache.length === 0) return showAlert("แจ้งเตือน", "ไม่มีข้อมูลการนับ");
+        const year = $('auditYearSelect').value;
         const ws = XLSX.utils.json_to_sheet(auditDataCache);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Audit_Data");
-        XLSX.writeFile(wb, `Audit_Report_${$('auditYearSelect').value}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, `Audit_${year}`);
+        XLSX.writeFile(wb, `รายงานการตรวจนับ_${year}.xlsx`);
     });
 
     // --- Import Logic ---
@@ -254,18 +288,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnDeleteAll) {
         // เปลี่ยนจาก confirm() เป็นเปิด Modal
         btnDeleteAll.addEventListener('click', () => {
+            $('delete-all-reason').value = ''; // Reset reason
             $('delete-all-modal').classList.remove('hidden');
         });
     }
 
     // เพิ่ม Event ให้ปุ่ม "ยืนยัน" ใน Modal ใหม่
     $('confirm-delete-all-btn').addEventListener('click', () => {
+        const reason = $('delete-all-reason').value.trim();
+        if (!reason) {
+            return showAlert("แจ้งเตือน", "กรุณาระบุเหตุผลในการลบข้อมูล");
+        }
+
         const btn = $('confirm-delete-all-btn');
         const originalContent = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> กำลังลบ...`;
 
-        apiPost('/api/delete-all', { user: currentUserFullName || currentUserName })
+        apiPost('/api/delete-all', { user: currentUserFullName || currentUserName, reason: reason })
             .then(res => {
                 btn.disabled = false;
                 btn.innerHTML = originalContent;
