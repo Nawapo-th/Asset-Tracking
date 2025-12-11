@@ -13,11 +13,23 @@ function apiPost(url, body) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
-    }).then(res => res.json());
+    }).then(async res => {
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`Error ${res.status}: ${text.substring(0, 100)}`);
+        }
+        return res.json();
+    });
 }
 
 function apiGet(url) {
-    return fetch(url).then(res => res.json());
+    return fetch(url).then(async res => {
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`Error ${res.status}: ${text.substring(0, 100)}`);
+        }
+        return res.json();
+    });
 }
 
 let ORGANIZATION_DATA = {};
@@ -469,7 +481,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // $('importButton').addEventListener('click', () => $('excelInput').click());
     // $('excelInput').addEventListener('change', (e) => { ... });
 
-    $('printQRButton').addEventListener('click', () => { const selected = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(c => c.value); if (selected.length === 0) return showAlert("แจ้งเตือน", "เลือกรายการก่อน"); localStorage.setItem('asset_print_selection', JSON.stringify(selected)); window.open(WEB_APP_URL + '?page=print', '_blank'); });
+
     $('selectAll').addEventListener('change', (e) => { document.querySelectorAll('.row-checkbox').forEach(c => c.checked = e.target.checked); updateSelectionState(); });
     $('prevPage').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderTable(); } });
     $('nextPage').addEventListener('click', () => { if (currentPage < Math.ceil(currentData.length / itemsPerPage)) { currentPage++; renderTable(); } });

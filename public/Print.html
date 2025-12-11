@@ -302,6 +302,11 @@
             if (data.length === 0) { document.getElementById('empty-message').style.display = 'block'; return; }
             allData = data;
             applyLabelPreset();
+
+            // Auto Print
+            setTimeout(() => {
+                window.print();
+            }, 1000);
         }
 
         function applyLabelPreset() {
