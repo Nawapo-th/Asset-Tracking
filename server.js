@@ -69,7 +69,7 @@ function generateQRCodeUrl(id) {
     // Using a public API for QR codes similar to original script, or could use 'qrcode' lib locally
     // Original: https://quickchart.io/qr?text=...
     // We'll keep the logic but point to our local server URL if needed, or just the ID
-    const baseUrl = 'http://10.67.3.111:3000'; // เปลี่ยนเป็น IP Server ของคุณ
+    const baseUrl = 'http://10.67.3.111/asset'; // เปลี่ยนเป็น IP Server ของคุณและเส้นทางใหม่
     return `https://quickchart.io/qr?text=${encodeURIComponent(baseUrl + '?id=' + encodeURIComponent(id))}&margin=0&size=500&ecLevel=L`;
 }
 
@@ -764,11 +764,16 @@ app.post('/api/import', upload.single('file'), async (req, res) => {
                         (AssetID, DeviceName, Model, Brand, Division, Department, User, Status, QRCodeURL, Remark, ImageURL, Floor, LastEditBy, LastEditDate) 
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
 
-                    await connection.query(query, [
-                        assetID, deviceName, model, brand, division, department,
-                        userName, status, generateQRCodeUrl(assetID), remark, imgUrl, floor, user
-                    ]);
-                    successCount++;
+                    try {
+                        await connection.query(query, [
+                            assetID, deviceName, model, brand, division, department,
+                            userName, status, generateQRCodeUrl(assetID), remark, imgUrl, floor, user
+                        ]);
+                        successCount++;
+                    } catch (insertErr) {
+                        console.error(`Import Insert Error (ID: ${assetID}):`, insertErr.message);
+                        failCount++;
+                    }
                 }
                 message += `Imported ${successCount} assets. `;
             }

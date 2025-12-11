@@ -14,10 +14,11 @@ function getRelativeUrl(url) {
 }
 
 function apiPost(url, body) {
+    const isFormData = body instanceof FormData;
     return fetch(getRelativeUrl(url), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        headers: isFormData ? {} : { 'Content-Type': 'application/json' }, // Let browser set Content-Type for FormData
+        body: isFormData ? body : JSON.stringify(body)
     }).then(async res => {
         if (!res.ok) {
             const text = await res.text();
@@ -482,9 +483,34 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     });
 
-    // Old Import Logic Removed - Replaced by FormData upload above
-    // $('importButton').addEventListener('click', () => $('excelInput').click());
-    // $('excelInput').addEventListener('change', (e) => { ... });
+    $('importButton').addEventListener('click', () => $('excelInput').click());
+    $('excelInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        showProcessModal("กำลังนาเข้าข้อมูล", "ระบบกำลังอัปโหลดและประมวลผลไฟล์...");
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('user', currentUserFullName || currentUserName);
+
+        apiPost('/api/import', formData)
+            .then(res => {
+                hideProcessModal();
+                if (res.status === 'success') {
+                    showAlert("สำเร็จ", res.message);
+                    fetchData(); // Reload table
+                } else {
+                    showAlert("ผิดพลาด", res.message);
+                }
+                $('excelInput').value = ''; // Reset input
+            })
+            .catch(err => {
+                hideProcessModal();
+                showAlert("Error", err.message);
+                $('excelInput').value = '';
+            });
+    });
 
 
     $('selectAll').addEventListener('change', (e) => { document.querySelectorAll('.row-checkbox').forEach(c => c.checked = e.target.checked); updateSelectionState(); });
