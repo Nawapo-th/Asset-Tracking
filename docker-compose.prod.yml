@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    # ช่วยให้ container มองเห็น localhost ของเครื่อง host ได้ (จำเป็นสำหรับ Linux)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      # ชี้ไปที่ฐานข้อมูลของเครื่อง Host
+      - DB_HOST=10.67.3.111
+      # แก้ไข user/password ให้ตรงกับ MySQL ของเครื่องปลายทาง
+      - DB_USER=root
+      - DB_PASSWORD=Qshc@68335
+      - DB_NAME=asset_db
+      - TZ=Asia/Bangkok
+    restart: always

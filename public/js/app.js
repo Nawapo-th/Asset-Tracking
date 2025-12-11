@@ -1070,12 +1070,33 @@ function renderTimelineItems(data) {
 
     data.forEach((item, index) => {
         const isLast = index === data.length - 1;
-        const iconBg = item.type === 'audit' ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400';
-        const icon = item.type === 'audit' ? '📋' : '⚙️';
+
+        // กำหนดไอคอนและสีตามประเภทของ action
+        let iconBg = 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400';
+        let icon = '⚙️';
+
+        if (item.type === 'audit') {
+            iconBg = 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400';
+            icon = '📋';
+        } else if (item.action === 'ADD') {
+            iconBg = 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400';
+            icon = '➕';
+        } else if (item.action === 'EDIT') {
+            iconBg = 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400';
+            icon = '✏️';
+        } else if (item.action === 'DELETE') {
+            iconBg = 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400';
+            icon = '🗑️';
+        } else if (item.action === 'ARCHIVE') {
+            iconBg = 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400';
+            icon = '📦';
+        }
 
         // --- Formatted Logic ---
         let detailText = item.details || "";
+
         if (item.type === 'audit') {
+            // จัดการข้อมูลการตรวจนับ
             detailText = detailText.replace('Found', 'ตรวจเจอจริง');
             let floorStr = "";
             const floorMatch = detailText.match(/\((F\d+|FG)\)/i);
@@ -1089,11 +1110,60 @@ function renderTimelineItems(data) {
                 detailText = `${parts[0].trim()} | หน่วยงาน: ${realDept}${floorStr}`;
             }
         } else if (item.action === 'EDIT' || item.action === 'UPDATE') {
-            // Format comma-separated changes as a vertical list
-            detailText = detailText.split(', ').map(change => `<span class="block">• ${change}</span>`).join('');
+            // แยกรายละเอียดการเปลี่ยนแปลงออกเป็นบรรทัด
+            // ตรวจสอบว่ามี "แก้ไขโดย:" หรือไม่
+            let editor = "";
+            let changesList = detailText;
+
+            if (detailText.includes('แก้ไขโดย:')) {
+                const parts = detailText.split('|');
+                if (parts.length > 0) {
+                    editor = parts[0].trim(); // "แก้ไขโดย: ชื่อ"
+                    changesList = parts.slice(1).join('|').trim();
+                }
+            }
+
+            // แยกการเปลี่ยนแปลงแต่ละรายการ
+            const changes = changesList.split(',').map(change => change.trim()).filter(c => c);
+
+            // สร้าง HTML สำหรับแสดงผล
+            let formattedChanges = changes.map(change => {
+                // เพิ่มไอคอนตามประเภทการเปลี่ยนแปลง
+                let changeIcon = '•';
+                if (change.includes('หน่วยงาน:')) changeIcon = '🏢';
+                else if (change.includes('ชั้น:')) changeIcon = '🏗️';
+                else if (change.includes('สถานะ:')) changeIcon = '📊';
+                else if (change.includes('ชื่อ:')) changeIcon = '📝';
+                else if (change.includes('รุ่น:')) changeIcon = '🔧';
+                else if (change.includes('ยี่ห้อ:')) changeIcon = '🏷️';
+                else if (change.includes('สังกัด:')) changeIcon = '🏛️';
+                else if (change.includes('ผู้ใช้งาน:')) changeIcon = '👤';
+
+                return `<span class="block pl-4 py-0.5"><span class="inline-block w-5">${changeIcon}</span> ${change}</span>`;
+            }).join('');
+
+            detailText = (editor ? `<div class="font-semibold text-indigo-700 dark:text-indigo-300 mb-1">${editor}</div>` : '') +
+                `<div class="bg-slate-50 dark:bg-slate-800 rounded-md p-2 mt-1">${formattedChanges}</div>`;
+        } else if (item.action === 'ADD') {
+            // จัดการข้อมูลการเพิ่มใหม่
+            const parts = detailText.split('|').map(p => p.trim());
+            if (parts.length > 1) {
+                detailText = `<div class="space-y-1">
+                    <div class="font-semibold">${parts[0]}</div>
+                    ${parts.slice(1).map(p => `<div class="text-xs pl-4">• ${p}</div>`).join('')}
+                </div>`;
+            }
         }
 
-        html += `<div class="relative pl-8 pb-6 ${isLast ? '' : 'border-l-2 border-slate-200 dark:border-slate-700'} ml-3"><div class="absolute -left-[9px] top-0 w-5 h-5 rounded-full ${iconBg} flex items-center justify-center ring-4 ring-white dark:ring-slate-800 text-[10px] font-bold">${icon}</div><div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-1"><span class="text-sm font-bold text-slate-800 dark:text-white">${item.action || item.title}</span><span class="text-xs font-mono text-slate-400 bg-slate-50 dark:bg-slate-700 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-600 mt-1 sm:mt-0">${item.dateStr}</span></div><p class="text-xs text-slate-600 dark:text-slate-400 mb-1">${detailText}</p><div class="flex items-center gap-1 text-[10px] text-slate-400">👤 ${item.user}</div></div>`;
+        html += `<div class="relative pl-8 pb-6 ${isLast ? '' : 'border-l-2 border-slate-200 dark:border-slate-700'} ml-3">
+            <div class="absolute -left-[9px] top-0 w-5 h-5 rounded-full ${iconBg} flex items-center justify-center ring-4 ring-white dark:ring-slate-800 text-[10px] font-bold">${icon}</div>
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-1">
+                <span class="text-sm font-bold text-slate-800 dark:text-white">${item.action || item.title}</span>
+                <span class="text-xs font-mono text-slate-400 bg-slate-50 dark:bg-slate-700 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-600 mt-1 sm:mt-0">${item.dateStr}</span>
+            </div>
+            <div class="text-xs text-slate-600 dark:text-slate-400 mb-1">${detailText}</div>
+            <div class="flex items-center gap-1 text-[10px] text-slate-400">👤 ${item.user}</div>
+        </div>`;
     });
     $('timeline-list').innerHTML = html;
 }

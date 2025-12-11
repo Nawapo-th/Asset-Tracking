@@ -25,9 +25,9 @@ if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
 
 // Database Connection
 const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'localhost',
+    host: process.env.DB_HOST || '10.67.3.111',
     user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'nawapon1234',
+    password: process.env.DB_PASSWORD || 'Qshc@68335',
     database: process.env.DB_NAME || 'asset_db',
     waitForConnections: true,
     connectionLimit: 10,
@@ -49,10 +49,13 @@ async function logAction(user, action, id, details) {
 
 function saveImage(base64Data, filename) {
     try {
-        const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-        if (!matches || matches.length !== 3) return null;
+        // Check if data is a Data URI scheme (contains comma)
+        // Frontend currently sends raw base64 (split(',')[1]), so this handles both cases.
+        const base64Content = base64Data.includes(',')
+            ? base64Data.split(',')[1]
+            : base64Data;
 
-        const buffer = Buffer.from(matches[2], 'base64');
+        const buffer = Buffer.from(base64Content, 'base64');
         const filePath = path.join(uploadDir, filename);
         fs.writeFileSync(filePath, buffer);
         return `/uploads/${filename}`;
@@ -195,7 +198,7 @@ app.post('/api/add', async (req, res) => {
             obj.user, obj.status, generateQRCodeUrl(obj.assetID), obj.remark, imgUrl, obj.floor, user
         ]);
 
-        await logAction(user, "ADD", obj.assetID, `เพิ่มครุภัณฑ์ใหม่: ${obj.deviceName}`);
+        await logAction(user, "ADD", obj.assetID, `เพิ่มครุภัณฑ์ใหม่: ${obj.deviceName} | หน่วยงาน: ${obj.department} | ชั้น: ${obj.floor || '-'}`);
 
         await connection.commit();
         res.json({ status: "success", message: "Added successfully." });
@@ -232,8 +235,17 @@ app.post('/api/update', async (req, res) => {
 
         let imgUrl = oldRow.ImageURL;
         let changes = [];
-        if (oldRow.DeviceName !== obj.deviceName) changes.push(`ชื่อ: ${oldRow.DeviceName} -> ${obj.deviceName}`);
-        if (oldRow.Status !== obj.status) changes.push(`สถานะ: ${oldRow.Status} -> ${obj.status}`);
+
+        // บันทึกการเปลี่ยนแปลงทุกฟิลด์ที่สำคัญ
+        if (oldRow.DeviceName !== obj.deviceName) changes.push(`ชื่อ: ${oldRow.DeviceName} → ${obj.deviceName}`);
+        if (oldRow.Model !== obj.model) changes.push(`รุ่น: ${oldRow.Model || '-'} → ${obj.model || '-'}`);
+        if (oldRow.Brand !== obj.brand) changes.push(`ยี่ห้อ: ${oldRow.Brand || '-'} → ${obj.brand || '-'}`);
+        if (oldRow.Division !== obj.location) changes.push(`สังกัด: ${oldRow.Division || '-'} → ${obj.location || '-'}`);
+        if (oldRow.Department !== obj.department) changes.push(`หน่วยงาน: ${oldRow.Department || '-'} → ${obj.department || '-'}`);
+        if (oldRow.Floor !== obj.floor) changes.push(`ชั้น: ${oldRow.Floor || '-'} → ${obj.floor || '-'}`);
+        if (oldRow.User !== obj.user) changes.push(`ผู้ใช้งาน: ${oldRow.User || '-'} → ${obj.user || '-'}`);
+        if (oldRow.Status !== obj.status) changes.push(`สถานะ: ${oldRow.Status} → ${obj.status}`);
+        if (oldRow.Remark !== obj.remark) changes.push(`หมายเหตุ: เปลี่ยนแปลง`);
 
         if (obj.image && obj.image.base64) {
             const ext = obj.image.mimeType.split('/')[1];
@@ -275,7 +287,7 @@ app.post('/api/update', async (req, res) => {
             fullName || user, oldRow.id
         ]);
 
-        await logAction(user, "EDIT", obj.assetID, changes.join(", "));
+        await logAction(user, "EDIT", obj.assetID, `แก้ไขโดย: ${fullName || user} | ${changes.join(", ")}`);
 
         await connection.commit();
         res.json({ status: "success", message: "Updated." });
@@ -303,7 +315,8 @@ app.post('/api/delete', async (req, res) => {
 
 // 7. Submit Audit
 app.post('/api/audit', async (req, res) => {
-    const { d, user } = req.body;
+    const d = req.body.obj || req.body.d;
+    const { user } = req.body;
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
@@ -750,6 +763,30 @@ app.post('/api/import', upload.single('file'), async (req, res) => {
     } catch (err) {
         console.error("Import General Error:", err);
         res.status(500).json({ status: "error", message: err.message });
+    }
+});
+
+// 18. Delete All Data
+app.post('/api/delete-all', async (req, res) => {
+    const { user } = req.body;
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // Delete all data (Audits first due to FK, though Cascade might handle it, explicit is safer)
+        await connection.query('DELETE FROM audits');
+        await connection.query('DELETE FROM inventory');
+
+        // Optional: clear history if truly resetting, but for now we just log the action
+        await logAction(user, "DELETE_ALL", "System", "ลบข้อมูลทั้งหมดในระบบ");
+
+        await connection.commit();
+        res.json({ status: "success", message: "ลบข้อมูลทั้งหมดเรียบร้อยแล้ว" });
+    } catch (err) {
+        await connection.rollback();
+        res.status(500).json({ status: "error", message: err.message });
+    } finally {
+        connection.release();
     }
 });
 
