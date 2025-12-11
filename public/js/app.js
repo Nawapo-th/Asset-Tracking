@@ -4,7 +4,7 @@ const ICONS = {
     view: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`,
     edit: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>`,
     delete: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>`,
-    link: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>`
+
 };
 
 // API Helper Functions
@@ -188,8 +188,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    $('location').addEventListener('change', function () { updateDeptList(this.value, 'departmentList', 'department'); });
-    $('audit-location').addEventListener('change', function () { updateDeptList(this.value, 'auditDepartmentList', 'audit-department'); });
+    $('location').addEventListener('change', function () { updateDeptList(this.value, 'department', ''); });
+    $('audit-location').addEventListener('change', function () { updateDeptList(this.value, 'audit-department', ''); });
     $('auditSearchBox').addEventListener('input', filterAuditTable);
     ['card-audit-total', 'card-audit-counted', 'card-audit-missing'].forEach((id, idx) => $(id).addEventListener('click', () => setAuditFilter(['all', 'counted', 'missing'][idx])));
     $('auditPrevPage').addEventListener('click', () => { if (auditCurrentPage > 1) { auditCurrentPage--; renderAuditTable(); } });
@@ -314,55 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.audit-row-checkbox').forEach(c => c.checked = e.target.checked);
         });
     }
-    // --- Logic สำหรับปุ่ม Clear Cache แบบ Modal สวยงาม ---
 
-    const btnClearCache = $('clearCacheButton');
-    const btnConfirmClearCache = $('confirm-clear-cache-btn');
-
-    // 1. เมื่อกดปุ่มไม้กวาด (Clear Cache) -> ให้เปิด Modal
-    if (btnClearCache) {
-        // ลบ Event Listener เก่าไม่ได้ทาง Code ง่ายๆ ดังนั้นต้องมั่นใจว่าลบโค้ดเก่าในไฟล์ทิ้งแล้ว
-        // หรือใช้วิธี Clone Node เพื่อล้าง Event เก่า (ทางเลือกเสริม)
-        // const newBtn = btnClearCache.cloneNode(true);
-        // btnClearCache.parentNode.replaceChild(newBtn, btnClearCache);
-
-        btnClearCache.addEventListener('click', () => {
-            // เปิด Modal ชื่อ 'clear-cache-modal'
-            $('clear-cache-modal').classList.remove('hidden');
-        });
-    }
-
-    // 2. เมื่อกดปุ่ม "ยืนยันลบ" (ใน Modal) -> ค่อยส่งคำสั่งไป Server
-    if (btnConfirmClearCache) {
-        btnConfirmClearCache.addEventListener('click', () => {
-            const btn = btnConfirmClearCache;
-            const originalText = btn.innerHTML;
-
-            // เปลี่ยนสถานะปุ่มเป็น Loading
-            btn.disabled = true;
-            btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> กำลังลบ...`;
-
-            apiPost('/api/clear-cache', { user: currentUserFullName || currentUserName })
-                .then(res => {
-                    // คืนค่าปุ่มและปิด Modal
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-                    $('clear-cache-modal').classList.add('hidden');
-
-                    if (res.status === 'success') {
-                        showAlert("สำเร็จ", res.message);
-                    } else {
-                        showAlert("แจ้งเตือน", res.message);
-                    }
-                })
-                .catch(err => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-                    $('clear-cache-modal').classList.add('hidden');
-                    showAlert("ข้อผิดพลาด", err.message);
-                });
-        });
-    }
     // 3. PDF Generate Button (Defensive Check)
     const btnPDF = $('btnGenPDF');
     if (btnPDF) {
@@ -666,9 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('btnViewDashboard').addEventListener('click', () => switchView('dashboard'));
     $('auditReportBtn').addEventListener('click', () => { switchView('audit'); fetchAuditReport(); });
 
-    // [Script.html] แก้ไขส่วน submit form
 
-    // [Script.html] โค้ดส่วน Submit Form (ฉบับสมบูรณ์ แก้ไขเรื่องวงเล็บเกิน)
 
     $('asset-form').addEventListener('submit', (e) => {
         e.preventDefault();
@@ -822,7 +772,37 @@ function updateSelectionState() {
     $('selectAll').indeterminate = count > 0 && count < allChecks.length;
 }
 function handleAddYear() { const y = prompt("ระบุปี (พ.ศ.):"); if (!y || y.length !== 4) return; const sel = $('auditYearSelect'); if ([...sel.options].some(o => o.value == y)) { sel.value = y; fetchAuditReport(); return; } const opt = document.createElement('option'); opt.value = y; opt.textContent = `ปีงบ ${y}`; sel.add(opt, 0); sel.value = y; fetchAuditReport(); }
-function updateDeptList(division, listId, inputId) { const list = $(listId), input = $(inputId); list.innerHTML = ''; input.value = ''; const depts = division && ORGANIZATION_DATA[division] ? ORGANIZATION_DATA[division] : Object.values(ORGANIZATION_DATA).flat().sort(); depts.forEach(d => { const opt = document.createElement('option'); opt.value = d; list.appendChild(opt); }); }
+function updateDeptList(division, selectId, currentValue) {
+    const select = $(selectId);
+    if (!select) return;
+    select.innerHTML = '<option value="">-- เลือกหน่วยงาน --</option>';
+
+    let depts = [];
+    if (division && ORGANIZATION_DATA[division]) {
+        depts = ORGANIZATION_DATA[division];
+    } else {
+        depts = Object.values(ORGANIZATION_DATA).flat().sort();
+        depts = [...new Set(depts)].sort();
+    }
+
+    depts.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d;
+        if (currentValue && d === currentValue) {
+            opt.selected = true;
+        }
+        select.appendChild(opt);
+    });
+
+    if (currentValue && !depts.includes(currentValue)) {
+        const opt = document.createElement('option');
+        opt.value = currentValue;
+        opt.textContent = currentValue + " (ไม่อยู่ในรายการ)";
+        opt.selected = true;
+        select.appendChild(opt);
+    }
+}
 function restoreSession() { try { const s = JSON.parse(localStorage.getItem('assetApp_state')); if (s?.isLoggedIn) { isLoggedIn = true; userRole = s.role; currentUserName = s.username; currentUserFullName = s.fullName; updateUIState(); startAutoLogoutTimer(); } } catch (e) { } }
 function updateUIState() {
     const isUser = isLoggedIn, isAdmin = userRole === 'admin';
@@ -1007,7 +987,7 @@ function renderTable() {
                 </tr>`;
     });
 }
-// [Script.html] แทนที่ฟังก์ชัน renderDashboard เดิม
+
 
 function renderDashboard() {
     // 1. เตรียมข้อมูลจากฝั่ง Inventory (ข้อมูลปัจจุบัน)
@@ -1248,7 +1228,7 @@ function showForm(mode, id, isScanned = false) {
         f.querySelectorAll('input, select, textarea').forEach(i => i.disabled = false);
         $('saveButton').classList.remove('hidden'); $('editButton').classList.add('hidden'); $('countAssetBtn').classList.add('hidden');
         $('qr-section').classList.add('hidden'); $('view-audit-note-wrapper').classList.add('hidden');
-        currentEditOriginalID = null; updateDeptList("", 'departmentList', 'department'); $('asset-image-input').classList.remove('hidden'); $('status').value = "ใช้งาน";
+        currentEditOriginalID = null; updateDeptList("", 'department', ''); $('asset-image-input').classList.remove('hidden'); $('status').value = "ใช้งาน";
     } else {
         const a = allData.find(r => String(r.assetID) === String(id)); if (!a) return;
         currentEditOriginalID = id; $('tab-btn-timeline').classList.remove('hidden');
@@ -1256,14 +1236,14 @@ function showForm(mode, id, isScanned = false) {
         if (a.assetImage) { $('asset-image-preview-container').classList.remove('hidden'); $('asset-image-img').src = a.assetImage; }
         $('qr-code-img').src = a.qrCodeUrl || ""; $('qr-section').classList.toggle('hidden', !a.qrCodeUrl);
         let d = a.division && ORGANIZATION_DATA[a.division] ? a.division : Object.keys(ORGANIZATION_DATA).find(k => ORGANIZATION_DATA[k].includes(a.department)) || "";
-        $('location').value = d; updateDeptList(d, 'departmentList', 'department'); $('department').value = a.department; $('status').value = a.status;
+        $('location').value = d; updateDeptList(d, 'department', a.department); $('department').value = a.department; $('status').value = a.status;
 
         if (mode === 'view') {
             $('form-title').textContent = "รายละเอียด"; f.querySelectorAll('input, select, textarea').forEach(i => i.disabled = true);
             $('saveButton').classList.add('hidden'); $('editButton').classList.add('hidden'); $('asset-image-input').classList.add('hidden'); $('delete-image-btn').classList.add('hidden');
             $('view-audit-note-wrapper').classList.toggle('hidden', !a.isAudited);
             if (a.isAudited) {
-                // [ปรับใหม่ข้อ 3] เพิ่มคำอธิบายเหนือรูปภาพ Audit
+
                 const imgDisplay = (a.auditImage && a.auditImage !== "-") ?
                     `<div class="mt-3 border-t border-emerald-100 dark:border-emerald-800 pt-2">
                               <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">📷 รูป ณ จุด ติดตั้ง</p>
@@ -1329,7 +1309,7 @@ function openAuditModalFromTable(asset) {
     if (!d || !ORGANIZATION_DATA[d]) { d = Object.keys(ORGANIZATION_DATA).find(k => ORGANIZATION_DATA[k].includes(asset.department)) || ""; }
     $('audit-location').innerHTML = '<option value="">-- เลือกสังกัด --</option>';
     $('audit-delete-entry-btn').classList.add('hidden');
-    updateDeptList(d, 'auditDepartmentList', 'audit-department');
+    updateDeptList(d, 'audit-department', asset.department);
     for (const div in ORGANIZATION_DATA) { const o = document.createElement('option'); o.value = div; o.textContent = div; if (div === d) o.selected = true; $('audit-location').appendChild(o); }
     $('audit-floor').value = asset.floor || "";
     $('audit-department').value = asset.department;
@@ -1352,7 +1332,7 @@ function openAuditEditModal(item) {
     $('audit-location').value = cleanLoc || item.division;
     if (!$('audit-location').value && item.department) { const inferredDiv = Object.keys(ORGANIZATION_DATA).find(k => ORGANIZATION_DATA[k].includes(item.department)); if (inferredDiv) $('audit-location').value = inferredDiv; }
     $('audit-delete-entry-btn').classList.remove('hidden');
-    updateDeptList($('audit-location').value, 'auditDepartmentList', 'audit-department');
+    updateDeptList($('audit-location').value, 'audit-department', item.department);
     $('audit-floor').value = item.floor || "";
     $('audit-department').value = item.department || "";
     $('audit-status').value = item.currentStatus || "ใช้งาน";
@@ -1577,10 +1557,10 @@ function applyAllFilters() {
 
 // แก้ไข Event Listener ของ SearchBox เดิมให้มาใช้ฟังก์ชันรวมนี้
 document.getElementById('searchBox').addEventListener('input', applyAllFilters);
-// ... (โค้ดเดิม) ...
 
 
-// --- [เพิ่มใหม่] ปุ่มค้นหารูป Google ---
+
+
 const btnGoogleSearch = document.getElementById('btn-google-search');
 if (btnGoogleSearch) {
     btnGoogleSearch.addEventListener('click', () => {
@@ -1598,7 +1578,7 @@ if (btnGoogleSearch) {
         }
     });
 }
-// --- [เพิ่มใหม่] ฟังก์ชันจัดการการ Paste รูปภาพ ---
+
 
 // 1. ฟังก์ชันหลักสำหรับประมวลผลการวาง
 function handlePasteImage(items) {
@@ -1683,7 +1663,7 @@ document.addEventListener('paste', (e) => {
         handlePasteImage(items);
     }
 });
-// [Script.html] เพิ่มโค้ดนี้ลงไป
+
 
 // Event Listener สำหรับปุ่ม Download Template
 const btnDownloadTemplate = document.getElementById('downloadTemplateBtn');
@@ -1719,7 +1699,7 @@ if (btnDownloadTemplate) {
         XLSX.writeFile(wb, "Asset_Template.xlsx");
     });
 }
-// [Script.html]
+
 
 function downloadArchive(type) {
     // ป้องกันการกดรัวๆ
@@ -1864,7 +1844,7 @@ function populateOrgDropdowns() {
     });
 }
 
-// [เพิ่มใหม่] ส่วนจัดการ Scanner
+
 let html5QrCode;
 
 function startScanner() {

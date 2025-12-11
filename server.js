@@ -517,13 +517,7 @@ app.get('/api/data', async (req, res) => {
         const data = rows.map(r => ({
             ...r,
             qrCodeUrl: r.Image ? (r.Image.startsWith('http') ? r.Image : (r.Image.startsWith('uploads/') ? r.Image : `uploads/${r.Image}`)) : null
-            // Note: Use 'Image' column for product image if that's what's intended, or generate QR code URL if needed. 
-            // BUT the original code used 'qrCodeUrl'.
-            // If the user wants QR codes, we should probably generate them or return the link.
-            // Wait, existing Print.html expects 'qrCodeUrl'. 
-            // In the previous code, it seems the app assumes the 'Image' column IS the QR code? 
-            // Or does it generate it on the fly?
-            // The error filename 'Audit_...' suggests an image audit file.
+
         }));
         res.json({ status: "success", data: rows });
     } catch (err) {
@@ -678,8 +672,6 @@ app.get('/api/backup', async (req, res) => {
         res.status(500).json({ status: "error", message: err.message });
     }
 });
-
-
 
 // 17. Import Data
 const upload = multer({ dest: 'uploads/temp/' });
