@@ -6,9 +6,12 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
+const https = require('https');
+const http = require('http');
 
 const app = express();
 const port = 3000;
+const httpsPort = 3443;
 
 // Middleware
 app.use(cors());
@@ -69,7 +72,7 @@ function generateQRCodeUrl(id) {
     // Using a public API for QR codes similar to original script, or could use 'qrcode' lib locally
     // Original: https://quickchart.io/qr?text=...
     // We'll keep the logic but point to our local server URL if needed, or just the ID
-    const baseUrl = 'http://10.67.3.116:3000'; // เปลี่ยนเป็น IP Server ของคุณ
+    const baseUrl = 'https://10.67.3.116:3443'; // เปลี่ยนเป็น HTTPS และ port 3443
     return `https://quickchart.io/qr?text=${encodeURIComponent(baseUrl + '?id=' + encodeURIComponent(id))}&margin=0&size=500&ecLevel=L`;
 }
 
@@ -790,7 +793,29 @@ app.post('/api/delete-all', async (req, res) => {
     }
 });
 
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
-    console.log(`To access from other devices, use IP: http://10.67.3.116:${port} (Check your actual IP)`);
+// Start HTTP Server
+http.createServer(app).listen(port, () => {
+    console.log(`🌐 HTTP Server running at http://localhost:${port}`);
+    console.log(`   Network: http://10.67.3.116:${port}`);
 });
+
+// Start HTTPS Server (if certificates exist)
+const certPath = path.join(__dirname, 'cert.pem');
+const keyPath = path.join(__dirname, 'key.pem');
+
+if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+    const httpsOptions = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath)
+    };
+
+    https.createServer(httpsOptions, app).listen(httpsPort, () => {
+        console.log(`🔒 HTTPS Server running at https://localhost:${httpsPort}`);
+        console.log(`   Network: https://10.67.3.116:${httpsPort}`);
+        console.log(`\n📱 For mobile camera access, use HTTPS URL!`);
+        console.log(`   Note: You may need to accept the self-signed certificate warning.\n`);
+    });
+} else {
+    console.warn('⚠️  HTTPS certificates not found. HTTPS server not started.');
+    console.warn('   Camera access may not work on mobile devices over HTTP.');
+}
