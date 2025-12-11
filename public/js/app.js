@@ -39,6 +39,7 @@ function apiGet(url) {
 }
 
 let ORGANIZATION_DATA = {};
+let ORGANIZATION_SETTINGS_LIST = [];
 let isLoggedIn = false, userRole = "user", currentUserName = "Guest", currentUserFullName = "";
 let currentView = 'home', currentEditOriginalID = null, assetToDeleteID = null;
 let isImageDeleted = false, isAuditImageDeleted = false;
@@ -141,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     fetchOrganizationData().then(() => {
         populateOrgDropdowns();
+        setupAutoFloorDetect();
     });
     fetchOrganizationData().then(() => {
         populateOrgDropdowns();
@@ -478,6 +480,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (res.status === 'success') {
                         showAlert("สำเร็จ", res.message);
                         fetchData(); // Reload table
+                        fetchOrganizationData().then(() => {
+                            populateOrgDropdowns();
+                            setupAutoFloorDetect(); // Reload auto-detect list
+                        });
                     } else {
                         showAlert("ผิดพลาด", res.message);
                     }
@@ -1758,12 +1764,88 @@ function downloadArchive(type) {
 function fetchOrganizationData() {
     return apiGet('/api/org-data')
         .then(data => {
-            ORGANIZATION_DATA = data || {};
+            if (data.map && data.list) {
+                ORGANIZATION_DATA = data.map;
+                ORGANIZATION_SETTINGS_LIST = data.list;
+            } else {
+                ORGANIZATION_DATA = data || {};
+                ORGANIZATION_SETTINGS_LIST = [];
+            }
         })
         .catch(err => {
             console.error("Failed to load org data", err);
             ORGANIZATION_DATA = {};
+            ORGANIZATION_SETTINGS_LIST = [];
         });
+}
+
+function setupAutoFloorDetect() {
+    const handleAutoFloor = (locId, deptId, floorId) => {
+        const deptInput = $(deptId);
+        const locSelect = $(locId);
+        const floorSelect = $(floorId);
+
+        if (!deptInput || !locSelect || !floorSelect) return;
+
+        // Helper function to update floor
+        // Helper function to update floor
+        const attemptUpdateFloor = () => {
+            const selectedDept = deptInput.value;
+            // Get current division value
+            let selectedDivision = locSelect.value;
+            let setting = null;
+
+            if (selectedDivision && selectedDept) {
+                // Case 1: Both Division and Dept are present. Find exact match.
+                setting = ORGANIZATION_SETTINGS_LIST.find(s =>
+                    s.Division === selectedDivision && s.Department === selectedDept
+                );
+            } else if (!selectedDivision && selectedDept) {
+                // Case 2: Only Dept is present (Division empty). Find match by Dept.
+                setting = ORGANIZATION_SETTINGS_LIST.find(s => s.Department === selectedDept);
+                // If found, Auto-fill the Division!
+                if (setting) {
+                    locSelect.value = setting.Division;
+                }
+            }
+
+            if (setting && setting.Floor) {
+                // console.log(`[AutoFloor] Found setting: ${setting.Floor} for ${selectedDivision}/${selectedDept}`);
+
+                // Normalization Logic to match <option values="F1"..."F10">
+                let val = setting.Floor.trim();
+
+                // 1. Try exact match first
+                floorSelect.value = val;
+
+                // 2. If select didn't update (value invalid), try to be smart
+                if (floorSelect.value === "") {
+                    // Try to extract number
+                    const match = val.match(/(\d+)/);
+                    if (match) {
+                        const num = match[1];
+                        // Try "F"+num (e.g. "2" -> "F2")
+                        floorSelect.value = `F${num}`;
+                    }
+
+                    // Try uppercase (e.g. "f2" -> "F2")
+                    if (floorSelect.value === "") {
+                        floorSelect.value = val.toUpperCase();
+                    }
+                }
+            }
+        };
+
+        // Listen on Department Input (Input for datalist selection/typing, Change for blur/enter)
+        deptInput.addEventListener('input', attemptUpdateFloor);
+        deptInput.addEventListener('change', attemptUpdateFloor);
+
+        // Also Listen on Location Change (If dept is already filled and location changes)
+        locSelect.addEventListener('change', attemptUpdateFloor);
+    };
+
+    handleAutoFloor('location', 'department', 'floor');
+    handleAutoFloor('audit-location', 'audit-department', 'audit-floor');
 }
 
 function populateOrgDropdowns() {

@@ -34,6 +34,23 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
+// --- Auto-Migration: Ensure 'Floor' column exists in settings ---
+(async () => {
+    try {
+        const connection = await pool.getConnection();
+        const [rows] = await connection.query("SHOW COLUMNS FROM settings LIKE 'Floor'");
+        if (rows.length === 0) {
+            console.log("Adding 'Floor' column to settings table...");
+            await connection.query("ALTER TABLE settings ADD COLUMN Floor VARCHAR(100) DEFAULT ''");
+        }
+        connection.release();
+    } catch (err) {
+        // Table might not exist yet, or connection error. 
+        // We log but don't crash, assuming table will be created or checked transparently.
+        console.error("Migration Check Log:", err.message);
+    }
+})();
+
 // --- Helper Functions ---
 
 async function logAction(user, action, id, details) {
@@ -109,9 +126,13 @@ app.get('/api/org-data', async (req, res) => {
         const map = {};
         rows.forEach(row => {
             if (!map[row.Division]) map[row.Division] = [];
-            map[row.Division].push(row.Department);
+            // Generic Deduplication
+            if (!map[row.Division].includes(row.Department)) {
+                map[row.Division].push(row.Department);
+            }
         });
-        res.json(map);
+        // Return both the simplified map (for dropdowns) and the full list (for auto-filling Floor)
+        res.json({ map, list: rows });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -701,12 +722,27 @@ app.post('/api/import', upload.single('file'), async (req, res) => {
                 for (const row of data) {
                     const division = row['Division'] || row['หน่วยงาน'];
                     const department = row['Department'] || row['แผนก'];
+                    const floor = row['Floor'] || row['ชั้น'] || '';
 
                     if (division && department) {
-                        // Check duplicate
-                        const [dup] = await connection.query('SELECT id FROM settings WHERE Division = ? AND Department = ?', [division, department]);
-                        if (dup.length === 0) {
-                            await connection.query('INSERT INTO settings (Division, Department) VALUES (?, ?)', [division, department]);
+                        // Check if Division + Department exists
+                        const [existing] = await connection.query(
+                            'SELECT id FROM settings WHERE Division = ? AND Department = ?',
+                            [division, department]
+                        );
+
+                        if (existing.length > 0) {
+                            // Update existing record (Update Floor)
+                            await connection.query(
+                                'UPDATE settings SET Floor = ? WHERE id = ?',
+                                [floor, existing[0].id]
+                            );
+                        } else {
+                            // Insert new record
+                            await connection.query(
+                                'INSERT INTO settings (Division, Department, Floor) VALUES (?, ?, ?)',
+                                [division, department, floor]
+                            );
                             settingCount++;
                         }
                     }
