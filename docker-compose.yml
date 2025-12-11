@@ -5,44 +5,28 @@ services:
     build: .
     ports:
       - "3000:3000"
-    # Comment out volumes for production - use files from container instead
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
+    # ช่วยให้ container มองเห็น localhost ของเครื่อง host ได้ (จำเป็นสำหรับ Linux)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
-      - DB_HOST=db
+      # ชี้ไปที่ฐานข้อมูลของเครื่อง Host
+      - DB_HOST=10.67.3.111
+      # แก้ไข user/password ให้ตรงกับ MySQL ของเครื่องปลายทาง
       - DB_USER=root
-      - DB_PASSWORD=nawapon1234
+      - DB_PASSWORD=Qshc@68335
       - DB_NAME=asset_db
       - TZ=Asia/Bangkok
-    depends_on:
-      - db
     restart: always
 
-  db:
-    image: mysql:8.0
-    command: --default-authentication-plugin=mysql_native_password
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: nawapon1234
-      MYSQL_DATABASE: asset_db
-      TZ: Asia/Bangkok
+  nginx:
+    image: nginx:alpine
     ports:
-      - "3306:3306"
+      - "80:80"
     volumes:
-      - db_data:/var/lib/mysql
-      - ./init_schema.sql:/docker-entrypoint-initdb.d/init_schema.sql
-
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - app
     restart: always
-    links:
-      - db
-    environment:
-      PMA_HOST: db
-      TZ: Asia/Bangkok
-    ports:
-      - "8080:80"
-
-volumes:
-  db_data:

@@ -8,8 +8,13 @@ const ICONS = {
 };
 
 // API Helper Functions
+function getRelativeUrl(url) {
+    // Remove leading slash to make the path relative to the current page (e.g. /asset/)
+    return url.startsWith('/') ? url.substring(1) : url;
+}
+
 function apiPost(url, body) {
-    return fetch(url, {
+    return fetch(getRelativeUrl(url), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -23,7 +28,7 @@ function apiPost(url, body) {
 }
 
 function apiGet(url) {
-    return fetch(url).then(async res => {
+    return fetch(getRelativeUrl(url)).then(async res => {
         if (!res.ok) {
             const text = await res.text();
             throw new Error(`Error ${res.status}: ${text.substring(0, 100)}`);
