@@ -1,0 +1,112 @@
+
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Audit Report 2568</title>
+            <style>
+                body { font-family: 'Sarabun', sans-serif; padding: 20px; }
+                .dept-section { margin-bottom: 50px; page-break-after: always; }
+                .dept-section:last-child { page-break-after: auto; }
+                h2, h3 { text-align: center; margin: 10px 0; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+                th, td { border: 1px solid #000; padding: 6px; text-align: left; vertical-align: top; }
+                th { background-color: #f0f0f0; font-weight: bold; text-align: center; }
+                .header { text-align: center; margin-bottom: 20px; }
+                .no-print { margin-bottom: 20px; }
+                .signature-block { 
+                    margin-top: 40px; 
+                    display: flex; 
+                    justify-content: flex-end; 
+                    page-break-inside: avoid;
+                }
+                .signature-box {
+                    text-align: center; 
+                    width: 300px;
+                }
+                .signature-line {
+                    border-bottom: 1px dotted #000;
+                    display: inline-block;
+                    width: 200px;
+                    height: 1px;
+                    margin: 0 5px;
+                }
+                @media print { 
+                    .no-print { display: none; } 
+                    body { padding: 0; }
+                }
+            </style>
+            <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+        </head>
+        <body>
+            <script>
+                window.onload = function() {
+                    setTimeout(() => { window.print(); }, 800);
+                };
+            </script>
+            
+            <div class="no-print" style="text-align: center;">
+                <button onclick="window.print()" style="padding: 10px 20px; background: #4F46E5; color: white; border: none; border-radius: 5px; cursor: pointer; font-family: 'Sarabun';">🖨️ พิมพ์รายงาน / บันทึกเป็น PDF (Print)</button>
+            </div>
+
+            <div class="header">
+                 <h2>รายงานการตรวจนับครุภัณฑ์ ประจำปีงบประมาณ 2568</h2>
+                 <p style="font-size: 12px;">ข้อมูล ณ วันที่: 11/12/2568 17:16:15</p>
+            </div>
+        
+            <div class="dept-section">
+                <h3>หน่วยงาน: หน่วยซ่อมบำรุงรักษาคอมพิวเตอร์</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">รหัสครุภัณฑ์ (Asset ID)</th>
+                            <th style="width: 25%;">ชื่อรายการ (Device Name)</th>
+                            <th style="width: 10%;">ผลการนับ</th>
+                            <th style="width: 15%;">สถานที่พบ</th>
+                            <th style="width: 15%;">ผู้ตรวจ / วันที่</th>
+                            <th style="width: 20%;">หมายเหตุ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td style="text-align:center;">5421130000039</td>
+                            <td>เครื่องคอมพิวเตอร์ PC</td>
+                            <td style="text-align:center;">Found</td>
+                            <td>หน่วยยานพาหนะ (ชั้น FG)</td>
+                            <td>
+                                นวพล พรเจริญ<br>
+                                <span style="font-size:10px; color:#555;">11/12/2568 14:42:47</span>
+                            </td>
+                            <td>-</td>
+                        </tr>
+                
+                        <tr>
+                            <td style="text-align:center;">6621130000042</td>
+                            <td>เครื่องคอมพิวเตอร์ All In One</td>
+                            <td style="text-align:center;">Found</td>
+                            <td>หน่วยซ่อมบำรุงรักษาคอมพิวเตอร์ (ชั้น F3)</td>
+                            <td>
+                                นวพล พรเจริญ<br>
+                                <span style="font-size:10px; color:#555;">11/12/2568 14:14:33</span>
+                            </td>
+                            <td>-</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+                
+                <div class="signature-block">
+                    <div class="signature-box">
+                        <p>ตรวจสอบความถูกต้อง</p>
+                        <br><br>
+                        <p>ลงชื่อ .......................................................</p>
+                        <p>( ....................................................... )</p>
+                        <p>ตำแหน่ง หัวหน้าหน่วยงาน/ผู้รับผิดชอบ</p>
+                        <p>วันที่ ......... / ......... / ...........</p>
+                    </div>
+                </div>
+            </div>
+            
+        </body>
+        </html>
+        

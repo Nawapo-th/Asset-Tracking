@@ -572,15 +572,30 @@ app.post('/api/delete-audit', async (req, res) => {
 app.post('/api/generate-pdf', async (req, res) => {
     const { year, selectedIds } = req.body;
     try {
-        let query = 'SELECT * FROM audits WHERE FiscalYear = ?';
+        let query = `
+            SELECT a.*, i.Department, i.DeviceName 
+            FROM audits a 
+            LEFT JOIN inventory i ON a.AssetID = i.AssetID 
+            WHERE a.FiscalYear = ?
+        `;
         let params = [year];
 
         if (selectedIds && selectedIds.length > 0) {
-            query += ' AND AssetID IN (?)';
+            query += ' AND a.AssetID IN (?)';
             params.push(selectedIds);
         }
 
+        query += ' ORDER BY i.Department ASC, a.AssetID ASC';
+
         const [rows] = await pool.query(query, params);
+
+        // Group by Department
+        const grouped = {};
+        rows.forEach(r => {
+            const dept = r.Department || 'ไม่ระบุหน่วยงาน (Unassigned)';
+            if (!grouped[dept]) grouped[dept] = [];
+            grouped[dept].push(r);
+        });
 
         // Generate HTML
         let html = `
@@ -590,50 +605,112 @@ app.post('/api/generate-pdf', async (req, res) => {
             <title>Audit Report ${year}</title>
             <style>
                 body { font-family: 'Sarabun', sans-serif; padding: 20px; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                th { background-color: #f2f2f2; }
-                .header { text-align: center; margin-bottom: 30px; }
-                @media print { .no-print { display: none; } }
+                .dept-section { margin-bottom: 50px; page-break-after: always; }
+                .dept-section:last-child { page-break-after: auto; }
+                h2, h3 { text-align: center; margin: 10px 0; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+                th, td { border: 1px solid #000; padding: 6px; text-align: left; vertical-align: top; }
+                th { background-color: #f0f0f0; font-weight: bold; text-align: center; }
+                .header { text-align: center; margin-bottom: 20px; }
+                .no-print { margin-bottom: 20px; }
+                .signature-block { 
+                    margin-top: 40px; 
+                    display: flex; 
+                    justify-content: flex-end; 
+                    page-break-inside: avoid;
+                }
+                .signature-box {
+                    text-align: center; 
+                    width: 300px;
+                }
+                .signature-line {
+                    border-bottom: 1px dotted #000;
+                    display: inline-block;
+                    width: 200px;
+                    height: 1px;
+                    margin: 0 5px;
+                }
+                @media print { 
+                    .no-print { display: none; } 
+                    body { padding: 0; }
+                }
             </style>
             <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
         </head>
         <body>
-            <div class="header">
-                <h2>รายงานการตรวจนับครุภัณฑ์ ประจำปีงบประมาณ ${year}</h2>
-                <p>วันที่พิมพ์: ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</p>
+            <script>
+                window.onload = function() {
+                    setTimeout(() => { window.print(); }, 800);
+                };
+            </script>
+            
+            <div class="no-print" style="text-align: center;">
+                <button onclick="window.print()" style="padding: 10px 20px; background: #4F46E5; color: white; border: none; border-radius: 5px; cursor: pointer; font-family: 'Sarabun';">🖨️ พิมพ์รายงาน / บันทึกเป็น PDF (Print)</button>
             </div>
-            <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: #4F46E5; color: white; border: none; border-radius: 5px; cursor: pointer; margin-bottom: 20px;">พิมพ์รายงาน (Print)</button>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Asset ID</th>
-                        <th>ผลการตรวจนับ</th>
-                        <th>ผู้ตรวจ</th>
-                        <th>วันที่ตรวจ</th>
-                        <th>สถานที่</th>
-                        <th>หมายเหตุ</th>
-                    </tr>
-                </thead>
-                <tbody>
+
+            <div class="header">
+                 <h2>รายงานการตรวจนับครุภัณฑ์ ประจำปีงบประมาณ ${year}</h2>
+                 <p style="font-size: 12px;">ข้อมูล ณ วันที่: ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</p>
+            </div>
         `;
 
-        rows.forEach(r => {
+        if (Object.keys(grouped).length === 0) {
+            html += `<div style="text-align:center; color:red;">ไม่พบข้อมูลการตรวจนับสำหรับเงื่อนไขที่เลือก</div>`;
+        }
+
+        for (const dept in grouped) {
             html += `
-                <tr>
-                    <td>${r.AssetID}</td>
-                    <td>${r.Result}</td>
-                    <td>${r.Auditor}</td>
-                    <td>${new Date(r.AuditDate).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</td>
-                    <td>${r.LocationAtAudit}</td>
-                    <td>${r.Note || '-'}</td>
-                </tr>
+            <div class="dept-section">
+                <h3>หน่วยงาน: ${dept}</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">รหัสครุภัณฑ์ (Asset ID)</th>
+                            <th style="width: 25%;">ชื่อรายการ (Device Name)</th>
+                            <th style="width: 10%;">ผลการนับ</th>
+                            <th style="width: 15%;">สถานที่พบ</th>
+                            <th style="width: 15%;">ผู้ตรวจ / วันที่</th>
+                            <th style="width: 20%;">หมายเหตุ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
             `;
-        });
+
+            grouped[dept].forEach(r => {
+                html += `
+                        <tr>
+                            <td style="text-align:center;">${r.AssetID}</td>
+                            <td>${r.DeviceName || '-'}</td>
+                            <td style="text-align:center;">${r.Result}</td>
+                            <td>${r.LocationAtAudit}</td>
+                            <td>
+                                ${r.Auditor}<br>
+                                <span style="font-size:10px; color:#555;">${new Date(r.AuditDate).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</span>
+                            </td>
+                            <td>${r.Note || '-'}</td>
+                        </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+                
+                <div class="signature-block">
+                    <div class="signature-box">
+                        <p>ตรวจสอบความถูกต้อง</p>
+                        <br><br>
+                        <p>ลงชื่อ .......................................................</p>
+                        <p>( ....................................................... )</p>
+                        <p>ตำแหน่ง หัวหน้าหน่วยงาน/ผู้รับผิดชอบ</p>
+                        <p>วันที่ ......... / ......... / ...........</p>
+                    </div>
+                </div>
+            </div>
+            `;
+        }
 
         html += `
-                </tbody>
-            </table>
         </body>
         </html>
         `;
@@ -644,9 +721,10 @@ app.post('/api/generate-pdf', async (req, res) => {
         const filename = `audit_report_${year}_${Date.now()}.html`;
         fs.writeFileSync(path.join(reportDir, filename), html);
 
-        res.json({ status: "success", url: `/reports/${filename}` });
+        res.json({ status: "success", url: `reports/${filename}` });
 
     } catch (err) {
+        console.error(err);
         res.status(500).json({ status: "error", message: err.message });
     }
 });

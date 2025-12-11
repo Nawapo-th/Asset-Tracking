@@ -1425,27 +1425,27 @@ function renderAuditTable() {
         const displayLocation = r.auditLocation ? r.auditLocation.replace(/\s*\(.*?\)$/, '') : "";
 
         tr.innerHTML = `
-                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 font-mono text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">${r.assetID}</td>
-                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 whitespace-nowrap">${r.deviceName}</td>
-                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 whitespace-nowrap">${displayLocation}</td>
-                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">${r.department || "-"}</td>
-                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-center text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">${r.floor || "-"}</td>
-                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700">${badge}</td>
-                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">${r.auditDate}<br>${r.auditor}</td>
-                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 max-w-[150px] truncate" title="${r.auditNote}">${r.auditNote}</td>
-                <td class="px-2 md:px-6 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-center">${imgLink}</td>
-                <td class="px-2 md:px-6 py-3 text-center border-b border-slate-200 dark:border-slate-700">${editBtn}</td>
+                <td class="px-2 md:px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 font-mono text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">${r.assetID}</td>
+                <td class="px-2 md:px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 font-medium text-slate-700 dark:text-slate-200 whitespace-nowrap">${r.deviceName}</td>
+                <td class="px-2 md:px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">${r.division || "-"}</td>
+                <td class="px-2 md:px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">${r.department || "-"}</td>
+                <td class="px-2 md:px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-center text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">${r.floor || "-"}</td>
+                <td class="px-2 md:px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700">${badge}</td>
+                <td class="px-2 md:px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">${r.auditDate}<br>${r.auditor}</td>
+                <td class="px-2 md:px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 max-w-[150px] truncate" title="${r.auditNote}">${r.auditNote}</td>
+                <td class="px-2 md:px-4 py-3 border-r border-b border-slate-200 dark:border-slate-700 text-center">${imgLink}</td>
+                <td class="px-2 md:px-4 py-3 text-center border-b border-slate-200 dark:border-slate-700">${editBtn}</td>
             `;
         tbody.appendChild(tr);
     });
 }
 
 function showAlert(t, m) { $('alert-title').textContent = t; $('alert-message').textContent = m; $('alert-modal').classList.remove('hidden'); }
-function handleSort(key) { if (sortConfig.key === key) sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc'; else { sortConfig.key = key; sortConfig.direction = 'asc'; } ['assetID', 'deviceName', 'model', 'division', 'department', 'floor', 'status'].forEach(k => { const icon = $(`sort-icon-${k}`); if (icon) icon.textContent = ''; }); const activeIcon = $(`sort-icon-${key}`); if (activeIcon) activeIcon.textContent = sortConfig.direction === 'asc' ? '' : ''; currentData.sort((a, b) => { let valA = a[key] ? String(a[key]).toLowerCase() : ''; let valB = b[key] ? String(b[key]).toLowerCase() : ''; if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1; if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1; return 0; }); currentPage = 1; renderTable(); }
+function handleSort(key) { if (sortConfig.key === key) sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc'; else { sortConfig.key = key; sortConfig.direction = 'asc'; } ['assetID', 'deviceName', 'model', 'division', 'department', 'floor', 'status'].forEach(k => { const icon = $(`sort-icon-${k}`); if (icon) icon.textContent = ''; }); const activeIcon = $(`sort-icon-${key}`); if (activeIcon) activeIcon.textContent = sortConfig.direction === 'asc' ? '▲' : '▼'; currentData.sort((a, b) => { let valA = a[key] ? String(a[key]).toLowerCase() : ''; let valB = b[key] ? String(b[key]).toLowerCase() : ''; if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1; if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1; return 0; }); currentPage = 1; renderTable(); }
 function handleAuditSort(key) {
     if (auditSortConfig.key === key) auditSortConfig.direction = auditSortConfig.direction === 'asc' ? 'desc' : 'asc'; else { auditSortConfig.key = key; auditSortConfig.direction = 'asc'; }
-    ['assetID', 'deviceName', 'auditLocation', 'department', 'floor', 'isAudited', 'auditDate'].forEach(k => { const icon = document.getElementById(`audit-sort-icon-${k}`); if (icon) icon.textContent = ''; });
-    const activeIcon = document.getElementById(`audit-sort-icon-${key}`); if (activeIcon) activeIcon.textContent = auditSortConfig.direction === 'asc' ? '' : '';
+    ['assetID', 'deviceName', 'division', 'department', 'floor', 'isAudited', 'auditDate'].forEach(k => { const icon = document.getElementById(`audit-sort-icon-${k}`); if (icon) icon.textContent = ''; });
+    const activeIcon = document.getElementById(`audit-sort-icon-${key}`); if (activeIcon) activeIcon.textContent = auditSortConfig.direction === 'asc' ? '▲' : '▼';
     auditFilteredData.sort((a, b) => {
         let valA = a[key] ? String(a[key]).toLowerCase() : ''; let valB = b[key] ? String(b[key]).toLowerCase() : '';
         if (key === 'isAudited') { valA = a.isAudited ? 1 : 0; valB = b.isAudited ? 1 : 0; }
@@ -1484,7 +1484,14 @@ function populateFilterDropdowns() {
         // 2. ตัดค่าว่างทิ้ง (filter)
         // 3. เอาค่าซ้ำออก (Set)
         // 4. เรียงตามตัวอักษร (sort)
-        const uniqueValues = [...new Set(allData.map(item => String(item[key] || "").trim()).filter(val => val !== ""))].sort();
+        let uniqueValues;
+
+        // **แก้ไขเพิ่มเติม:** ถ้าเป็น 'division' ให้ดึงจาก ORGANIZATION_DATA เพื่อให้ตรงตามโครงสร้างสังกัด
+        // แต่จริงๆ แล้วควรดึงจากข้อมูลที่มีอยู่จริง (Inventory) เพื่อจะได้กรองเฉพาะที่มี
+        // ดังนั้นใช้ logic เดิมถูกต้องแล้ว แต่ต้องระวังเรื่องชื่อ field ให้ตรงกัน (division vs location)
+        // ใน allData field คือ 'division' ถูกต้องแล้ว
+
+        uniqueValues = [...new Set(allData.map(item => String(item[key] || "").trim()).filter(val => val !== ""))].sort();
 
         // เก็บ Option แรกไว้ (ที่เขียนว่า "ทุก...") แล้วล้างที่เหลือ
         const firstOption = select.firstElementChild;
