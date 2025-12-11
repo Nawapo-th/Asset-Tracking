@@ -258,46 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
         XLSX.writeFile(wb, `รายงานการตรวจนับ_${year}.xlsx`);
     });
 
-    // --- Import Logic ---
-    const btnImport = $('importButton');
-    const fileInput = $('excelInput');
-    if (btnImport && fileInput) {
-        btnImport.addEventListener('click', () => {
-            fileInput.click();
-        });
 
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            showProcessModal("กำลังนำเข้าข้อมูล", "ระบบกำลังอ่านไฟล์และบันทึกข้อมูล...");
-
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('user', currentUserFullName || currentUserName);
-
-            fetch('/api/import', {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => response.json())
-                .then(res => {
-                    hideProcessModal();
-                    fileInput.value = ''; // Reset
-                    if (res.status === 'success') {
-                        showAlert("นำเข้าสำเร็จ", res.message);
-                        fetchData(); // Refresh data
-                    } else {
-                        showAlert("ผิดพลาด", res.message);
-                    }
-                })
-                .catch(err => {
-                    hideProcessModal();
-                    fileInput.value = '';
-                    showAlert("Error", err.message);
-                });
-        });
-    }
 
     // --- SAFE LOGIC FOR BUTTONS THAT MIGHT NOT EXIST ---
 
@@ -311,7 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // เพิ่ม Event ให้ปุ่ม "ยืนยัน" ใน Modal ใหม่
     $('confirm-delete-all-btn').addEventListener('click', () => {
         const reason = $('delete-all-reason').value.trim();
         if (!reason) {
@@ -477,41 +437,59 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             })
             .catch(err => {
-                btn.disabled = false;
                 hideProcessModal();
                 showAlert("Server Error", err.message);
             });
     });
 
-    $('importButton').addEventListener('click', () => $('excelInput').click());
-    $('excelInput').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+    const btnImport = $('importButton');
+    if (btnImport) {
+        // Remove old listeners (by cloning) to prevent duplicates if any
+        const newBtn = btnImport.cloneNode(true);
+        btnImport.parentNode.replaceChild(newBtn, btnImport);
 
-        showProcessModal("กำลังนาเข้าข้อมูล", "ระบบกำลังอัปโหลดและประมวลผลไฟล์...");
+        newBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const input = $('excelInput');
+            input.value = ''; // Reset to allow re-selecting same file
+            input.click();
+        });
+    }
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('user', currentUserFullName || currentUserName);
+    const inputExcel = $('excelInput');
+    if (inputExcel) {
+        // Remove old listeners
+        const newInput = inputExcel.cloneNode(true);
+        inputExcel.parentNode.replaceChild(newInput, inputExcel);
 
-        apiPost('/api/import', formData)
-            .then(res => {
-                hideProcessModal();
-                if (res.status === 'success') {
-                    showAlert("สำเร็จ", res.message);
-                    fetchData(); // Reload table
-                } else {
-                    showAlert("ผิดพลาด", res.message);
-                }
-                $('excelInput').value = ''; // Reset input
-            })
-            .catch(err => {
-                hideProcessModal();
-                showAlert("Error", err.message);
-                $('excelInput').value = '';
-            });
-    });
+        newInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
+            showProcessModal("กำลังนำเข้าข้อมูล", "ระบบกำลังอัปโหลดและประมวลผลไฟล์...");
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('user', currentUserFullName || currentUserName);
+
+            apiPost('/api/import', formData)
+                .then(res => {
+                    hideProcessModal();
+                    if (res.status === 'success') {
+                        showAlert("สำเร็จ", res.message);
+                        fetchData(); // Reload table
+                    } else {
+                        showAlert("ผิดพลาด", res.message);
+                    }
+                    newInput.value = ''; // Reset input
+                })
+                .catch(err => {
+                    hideProcessModal();
+                    showAlert("Error", err.message);
+                    newInput.value = '';
+                });
+        });
+    }
 
     $('selectAll').addEventListener('change', (e) => { document.querySelectorAll('.row-checkbox').forEach(c => c.checked = e.target.checked); updateSelectionState(); });
     $('prevPage').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderTable(); } });
