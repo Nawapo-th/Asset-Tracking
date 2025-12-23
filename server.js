@@ -52,6 +52,22 @@ const pool = mysql.createPool({
     }
 })();
 
+// --- Auto-Migration: Ensure 'จ้างเหมา งานเทคโนโลยีสารสนเทศ' exists in settings ---
+(async () => {
+    try {
+        const connection = await pool.getConnection();
+        const [rows] = await connection.query("SELECT * FROM settings WHERE Department = 'จ้างเหมา งานเทคโนโลยีสารสนเทศ'");
+        if (rows.length === 0) {
+            console.log("Seeding 'จ้างเหมา งานเทคโนโลยีสารสนเทศ'...");
+            await connection.query("INSERT INTO settings (Division, Department, Status) VALUES (?, ?, ?)",
+                ['ฝ่ายบริการและสนันสนุนทั่วไป', 'จ้างเหมา งานเทคโนโลยีสารสนเทศ', 'ใช้งาน']);
+        }
+        connection.release();
+    } catch (err) {
+        console.error("Seeding Check Log:", err.message);
+    }
+})();
+
 // --- Helper Functions ---
 
 async function logAction(user, action, id, details) {
@@ -105,7 +121,8 @@ app.post('/api/login', async (req, res) => {
 
         if (response.data && response.data.isSuccess) {
             const d = response.data.data || {};
-            const role = (d.division || "") === "งานเทคโนโลยีสารสนเทศ" ? "admin" : "user";
+            const adminDivisions = ["งานเทคโนโลยีสารสนเทศ", "จ้างเหมา งานเทคโนโลยีสารสนเทศ"];
+            const role = adminDivisions.includes(d.division || "") ? "admin" : "user";
             res.json({ success: true, name: d.fullName || response.data.fullName || username, role });
         } else {
             res.json({ success: false, message: response.data.message || "Login failed" });

@@ -1186,32 +1186,50 @@ function renderTimelineItems(data) {
                 else if (change.includes('สังกัด:')) changeIcon = '🏛️';
                 else if (change.includes('ผู้ใช้งาน:')) changeIcon = '👤';
 
-                return `<span class="block pl-4 py-0.5"><span class="inline-block w-5">${changeIcon}</span> ${change}</span>`;
+                return `<span class="block pl-4 py-0.5 text-xs text-slate-600 dark:text-slate-300"><span class="inline-block w-5 text-center">${changeIcon}</span> ${change}</span>`;
             }).join('');
 
-            detailText = (editor ? `<div class="font-semibold text-indigo-700 dark:text-indigo-300 mb-1">${editor}</div>` : '') +
-                `<div class="bg-slate-50 dark:bg-slate-800 rounded-md p-2 mt-1">${formattedChanges}</div>`;
+            detailText = (editor ? `<div class="font-bold text-xs text-slate-700 dark:text-slate-200 mb-1.5 border-b border-slate-100 dark:border-slate-700 pb-1">${editor}</div>` : '') +
+                `<div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-2 mt-1 space-y-0.5">${formattedChanges}</div>`;
         } else if (item.action === 'ADD') {
-            // จัดการข้อมูลการเพิ่มใหม่
             const parts = detailText.split('|').map(p => p.trim());
             if (parts.length > 1) {
-                detailText = `<div class="space-y-1">
-                    <div class="font-semibold">${parts[0]}</div>
-                    ${parts.slice(1).map(p => `<div class="text-xs pl-4">• ${p}</div>`).join('')}
+                detailText = `<div class="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg border border-blue-100 dark:border-blue-900/50">
+                    <div class="font-bold text-xs text-blue-700 dark:text-blue-300 mb-1">🎉 เพิ่มเข้าระบบใหม่</div>
+                    <div class="text-[10px] text-blue-600 dark:text-blue-400 pl-2">
+                        สร้างโดย: ${item.user}<br>
+                        ${parts.slice(1).join('<br>')}
+                    </div>
                 </div>`;
             }
         }
 
-        html += `<div class="relative pl-8 pb-6 ${isLast ? '' : 'border-l-2 border-slate-200 dark:border-slate-700'} ml-3">
-            <div class="absolute -left-[9px] top-0 w-5 h-5 rounded-full ${iconBg} flex items-center justify-center ring-4 ring-white dark:ring-slate-800 text-[10px] font-bold">${icon}</div>
-            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-1">
-                <span class="text-sm font-bold text-slate-800 dark:text-white">${item.action || item.title}</span>
-                <span class="text-xs font-mono text-slate-400 bg-slate-50 dark:bg-slate-700 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-600 mt-1 sm:mt-0">
-                    ${new Date(item.timestamp).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}
-                </span>
+        html += `
+        <div class="relative pl-8 pb-8 ${isLast ? '' : ''}">
+            <!-- Connecting Line -->
+            ${!isLast ? '<div class="absolute left-[11px] top-6 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-700"></div>' : ''}
+            
+            <!-- Icon Circle -->
+            <div class="absolute left-0 top-0 w-6 h-6 rounded-full ${iconBg} flex items-center justify-center ring-4 ring-white dark:ring-slate-800 shadow-sm z-10 text-xs translate-x-[-1px]">
+                ${icon}
             </div>
-            <div class="text-xs text-slate-600 dark:text-slate-400 mb-1">${detailText}</div>
-            <div class="flex items-center gap-1 text-[10px] text-slate-400">👤 ${item.user}</div>
+
+            <!-- Content Card -->
+            <div class="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow -mt-1">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 border-b border-slate-50 dark:border-slate-700 pb-2">
+                    <span class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        ${item.action || item.title}
+                    </span>
+                    <span class="text-[10px] font-mono text-slate-400 bg-slate-50 dark:bg-slate-700 px-2 py-0.5 rounded-full mt-1 sm:mt-0 whitespace-nowrap">
+                        🕒 ${new Date(item.timestamp).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}
+                    </span>
+                </div>
+                <div class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">${detailText}</div>
+                <div class="mt-2 flex items-center gap-1.5 text-[10px] text-slate-400 border-t border-slate-50 dark:border-slate-700 pt-1.5">
+                    <span class="w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-[8px]">👤</span> 
+                    ${item.user}
+                </div>
+            </div>
         </div>`;
     });
     $('timeline-list').innerHTML = html;
